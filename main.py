@@ -51,6 +51,37 @@ async def image(ctx, *, prompt: str):
         logging.error(f"Error generating image: {e}")
         await ctx.send("An error occurred while generating the image.")
 
+# Define a command for mood analysis
+@bot.command()
+async def mood(ctx, limit: int = 10):
+    """Analyze recent messages and suggest possible emotions."""
+    if limit > 100:
+        limit = 100  # Ensure the limit does not exceed 100
+    try:
+        messages = []
+        async for message in ctx.channel.history(limit=limit):
+            messages.append(f"{message.author.name}: {message.content}")
+
+        # Create a prompt for emotion analysis
+        prompt = (
+            "Analyze the emotions in this conversation and suggest how the participants might be feeling:\n\n" +
+            "\n".join(messages) +
+            "\n\nGive a concise emotional summary."
+        )
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": "You are an AI that analyzes emotions in conversations."},
+                      {"role": "user", "content": prompt}]
+        )
+
+        mood_analysis = response["choices"][0]["message"]["content"].strip()
+        await ctx.send(f"💡 Mood Analysis: {mood_analysis}")
+
+    except Exception as e:
+        logging.error(f"Error analyzing mood: {e}")
+        await ctx.send("An error occurred while analyzing the mood.")
+
 # Start the Discord bot
 def run_bot():
     logging.info("Starting Discord bot...")
