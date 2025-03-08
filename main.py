@@ -4,6 +4,7 @@ import os
 from fastapi import FastAPI
 from discord.ext import commands
 from dotenv import load_dotenv
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -14,7 +15,7 @@ app = FastAPI()
 # OpenAI setup
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Discord setup
+# Discord bot setup
 intents = discord.Intents.default()
 intents.message_content = True  # Allows access to the content of messages
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -40,6 +41,5 @@ def run_bot():
     bot.run(os.getenv("DISCORD_BOT_TOKEN"))
 
 if __name__ == "__main__":
-    import threading
     # Run bot in a separate thread to prevent blocking the FastAPI server
     threading.Thread(target=run_bot).start()
