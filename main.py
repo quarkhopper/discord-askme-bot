@@ -5,9 +5,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import logging
 
-#verify openai version
-print(f"OpenAI version: {openai.__version__}")
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -29,20 +26,15 @@ async def on_ready():
 async def chat(ctx, *, message: str):
     """A simple command to interact with OpenAI"""
     try:
-        # Corrected method for the new OpenAI API (>=1.0.0)
-        response = openai.chat_completions.create(
-            model="gpt-3.5-turbo",  # Or gpt-4 if you have access
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": message},
-            ],
+        # Correct method to call Chat API
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Or another model you want to use
+            messages=[{"role": "user", "content": message}],
         )
-        
-        # Send the response back to Discord
-        await ctx.send(response['choices'][0]['message']['content'])
+        await ctx.send(response['choices'][0]['message']['content'].strip())
     except Exception as e:
         logging.error(f"Error interacting with OpenAI: {e}")
-        await ctx.send("An error occurred while trying to talk to OpenAI.")
+        await ctx.send("An error occurred while processing your request.")
 
 # Start the Discord bot
 def run_bot():
