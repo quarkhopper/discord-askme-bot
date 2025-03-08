@@ -53,15 +53,15 @@ async def image(ctx, *, prompt: str):
 
 # Define a command for mood analysis
 @bot.command()
-async def mood(ctx, username: str = None):
+async def mood(ctx, user: discord.Member = None):
     """Analyze the mood of a specific user or the last 10 messages in general."""
     try:
         messages = []
         limit = 10  # Always fetch 10 messages
         
         async for message in ctx.channel.history(limit=100):  # Search up to 100 messages to find 10 from the user
-            if username is None or message.author.name.lower() == username.lower():
-                messages.append(f"{message.author.name}: {message.content}")
+            if user is None or message.author == user or message.author.name == user.name:
+                messages.append(f"{message.author.display_name}: {message.content}")
                 if len(messages) >= 10:
                     break
 
