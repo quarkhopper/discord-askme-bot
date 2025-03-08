@@ -43,5 +43,5 @@ def run_bot():
     logging.info("Starting Discord bot...")
     bot.run(os.getenv("DISCORD_BOT_TOKEN"))
 
-if __name__ "__main__":
+if __name__ == "__main__":  # Corrected line
     run_bot()
