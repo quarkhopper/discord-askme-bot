@@ -26,8 +26,8 @@ async def on_ready():
 async def chat(ctx, *, message: str):
     """A simple command to interact with OpenAI"""
     try:
-        # Use the new OpenAI chat API (version >= 1.0.0)
-        response = openai.chat.Completion.create(
+        # Use the OpenAI chat API correctly (v1.0.0+)
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Or whichever model you want to use
             messages=[{"role": "user", "content": message}]
         )
