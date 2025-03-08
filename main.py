@@ -5,9 +5,13 @@ from fastapi import FastAPI
 from discord.ext import commands
 from dotenv import load_dotenv
 import threading
+import logging
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging to see more details in the logs
+logging.basicConfig(level=logging.INFO)
 
 # FastAPI setup
 app = FastAPI()
@@ -38,6 +42,7 @@ async def chat(ctx, *, message: str):
 
 # Start the Discord bot
 def run_bot():
+    logging.info("Starting Discord bot...")
     bot.run(os.getenv("DISCORD_BOT_TOKEN"))
 
 if __name__ == "__main__":
