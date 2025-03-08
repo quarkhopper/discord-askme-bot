@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 import threading
 import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 # Load environment variables
 load_dotenv()
-
-# Configure logging to see more details in the logs
-logging.basicConfig(level=logging.INFO)
 
 # FastAPI setup
 app = FastAPI()
@@ -23,6 +23,11 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 intents = discord.Intents.default()
 intents.message_content = True  # Allows access to the content of messages
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Log when bot is ready
+@bot.event
+async def on_ready():
+    logging.info(f"Logged in as {bot.user}")
 
 # Define a simple FastAPI route for health check
 @app.get("/")
