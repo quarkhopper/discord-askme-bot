@@ -53,14 +53,19 @@ async def image(ctx, *, prompt: str):
 
 # Define a command for mood analysis
 @bot.command()
-async def mood(ctx, limit: int = 10):
-    """Analyze recent messages and suggest possible emotions."""
+async def mood(ctx, user: discord.Member = None, limit: int = 10):
+    """Analyze recent messages and suggest possible emotions for a specific user or the whole channel."""
     if limit > 100:
         limit = 100  # Ensure the limit does not exceed 100
     try:
         messages = []
         async for message in ctx.channel.history(limit=limit):
-            messages.append(f"{message.author.name}: {message.content}")
+            if user is None or message.author == user:
+                messages.append(f"{message.author.name}: {message.content}")
+
+        if not messages:
+            await ctx.send("No messages found for the specified user.")
+            return
 
         # Create a prompt for emotion analysis
         prompt = (
