@@ -26,14 +26,13 @@ async def on_ready():
 async def chat(ctx, *, message: str):
     """A simple command to interact with OpenAI"""
     try:
-        # Use the new OpenAI API (post v1.0.0 update)
-        response = openai.completions.create(
+        # Use the correct endpoint for the chat model
+        response = openai.chat_completions.create(
             model="gpt-3.5-turbo",  # Or whichever model you want to use
-            prompt=message,
-            max_tokens=150
+            messages=[{"role": "user", "content": message}]
         )
         # Send the response to Discord
-        await ctx.send(response['choices'][0]['text'].strip())
+        await ctx.send(response['choices'][0]['message']['content'])
 
     except Exception as e:
         logging.error(f"Error interacting with OpenAI: {e}")
