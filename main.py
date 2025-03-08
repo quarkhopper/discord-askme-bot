@@ -1,10 +1,8 @@
 import discord
 import openai
 import os
-from fastapi import FastAPI
 from discord.ext import commands
 from dotenv import load_dotenv
-import threading
 import logging
 
 # Configure logging
@@ -12,12 +10,6 @@ logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
 load_dotenv()
-
-# FastAPI setup
-app = FastAPI()
-
-# OpenAI setup
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Discord bot setup
 intents = discord.Intents.default()
@@ -28,11 +20,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     logging.info(f"Logged in as {bot.user}")
-
-# Define a simple FastAPI route for health check
-@app.get("/")
-def read_root():
-    return {"message": "Hello, World!"}
 
 # Define a command for the Discord bot
 @bot.command()
@@ -51,5 +38,4 @@ def run_bot():
     bot.run(os.getenv("DISCORD_BOT_TOKEN"))
 
 if __name__ == "__main__":
-    # Run bot in a separate thread to prevent blocking the FastAPI server
-    threading.Thread(target=run_bot).start()
+    run_bot()
