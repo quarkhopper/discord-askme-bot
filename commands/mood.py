@@ -41,6 +41,10 @@ class MoodAnalyzer(commands.Cog):
         user = None
         channel = ctx.channel  # Default to current channel
 
+        # Ensure target is always treated as a list
+        if target and not isinstance(target, list):
+            target = [target]  # Convert single object into a list
+
         if target:
             for item in target:
                 if isinstance(item, discord.TextChannel):
