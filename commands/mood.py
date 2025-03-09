@@ -1,9 +1,18 @@
+import discord
 from discord.ext import commands
+import openai
 import config  # Import shared config
+import os
 
-def setup(bot, openai_client):  # Add openai_client as an argument
-    @bot.command()
-    async def mood(ctx, user: commands.MemberConverter = None):
+class MoodAnalyzer(commands.Cog):
+    """Cog for analyzing the mood of a user or recent messages in a channel."""
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
+
+    @commands.command()
+    async def mood(self, ctx, user: discord.Member = None):
         """Analyze the mood of a specific user or the last 10 messages."""
         if config.is_forbidden_channel(ctx):
             return
@@ -26,7 +35,7 @@ def setup(bot, openai_client):  # Add openai_client as an argument
                 "\n\nGive a concise emotional summary."
             )
 
-            response = openai_client.chat.completions.create(
+            response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are an AI that analyzes emotions in conversations."},
@@ -37,6 +46,10 @@ def setup(bot, openai_client):  # Add openai_client as an argument
             mood_analysis = response.choices[0].message.content.strip()
             config.logger.info(f"Mood analysis result: {mood_analysis}")
             await ctx.send(f"💡 Mood Analysis: {mood_analysis}")
+
         except Exception as e:
             config.logger.error(f"Error analyzing mood: {e}")
             await ctx.send("An error occurred while analyzing the mood.")
+
+async def setup(bot):
+    await bot.add_cog(MoodAnalyzer(bot))
