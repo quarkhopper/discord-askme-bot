@@ -16,15 +16,40 @@ intents = discord.Intents.default()
 intents.message_content = True  # Allows access to the content of messages
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Define the channel restriction
+FORBIDDEN_CHANNELS = ["general"]  # List of restricted channel names
+
 # Log when bot is ready
 @bot.event
 async def on_ready():
     logging.info(f"Logged in as {bot.user}")
 
+# Helper function to check if the command is in a forbidden channel
+def is_forbidden_channel(ctx):
+    return ctx.channel.name in FORBIDDEN_CHANNELS
+
+# Define the help command
+@bot.command()
+async def help(ctx):
+    """Displays a list of available commands."""
+    if is_forbidden_channel(ctx):
+        return
+    
+    help_text = "**Available Commands:**\n"
+    help_text += "`!help` - Displays this help message.\n"
+    help_text += "`!chat [message]` - Talk to the bot and get AI-generated responses.\n"
+    help_text += "`!image [prompt]` - Generate an image using OpenAI's DALL·E API.\n"
+    help_text += "`!mood [@user]` - Analyze the mood of a user or the last 10 messages.\n"
+    help_text += "`!clearafter [text]` - Deletes all messages after a given text (up to 100 messages).\n"
+    await ctx.send(help_text)
+
 # Define a command for text interaction with OpenAI
 @bot.command()
 async def chat(ctx, *, message: str):
     """A simple command to interact with OpenAI"""
+    if is_forbidden_channel(ctx):
+        return
+    
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # Or another model you want to use
@@ -39,6 +64,9 @@ async def chat(ctx, *, message: str):
 @bot.command()
 async def image(ctx, *, prompt: str):
     """Generate an image using OpenAI's DALL·E API"""
+    if is_forbidden_channel(ctx):
+        return
+    
     try:
         response = openai.Image.create(
             prompt=prompt,
@@ -55,6 +83,9 @@ async def image(ctx, *, prompt: str):
 @bot.command()
 async def mood(ctx, user: discord.Member = None):
     """Analyze the mood of a specific user or the last 10 messages in general."""
+    if is_forbidden_channel(ctx):
+        return
+    
     try:
         messages = []
         limit = 10  # Always fetch 10 messages
@@ -88,6 +119,26 @@ async def mood(ctx, user: discord.Member = None):
     except Exception as e:
         logging.error(f"Error analyzing mood: {e}")
         await ctx.send("An error occurred while analyzing the mood.")
+
+# Define a command to clear messages after a given partial string
+@bot.command()
+async def clearafter(ctx, *, text: str):
+    """Deletes all messages after the given partial string (up to 100 messages)."""
+    if is_forbidden_channel(ctx):
+        return
+    
+    try:
+        async for message in ctx.channel.history(limit=100):
+            if text in message.content:
+                async for msg_to_delete in ctx.channel.history(after=message.created_at, limit=100):
+                    await msg_to_delete.delete()
+                await ctx.send("✅ Messages cleared after the specified text.")
+                return
+        
+        await ctx.send("❌ No messages found containing the specified text.")
+    except Exception as e:
+        logging.error(f"Error clearing messages: {e}")
+        await ctx.send("An error occurred while clearing messages.")
 
 # Start the Discord bot
 def run_bot():
