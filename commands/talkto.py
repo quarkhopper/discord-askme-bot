@@ -35,7 +35,7 @@ class TalkSimulator(commands.Cog):
         """Extracts commonly used words from user messages without nltk."""
         text = " ".join(messages).lower()
         words = re.findall(r'\b\w{4,}\b', text)  # Extract words with 4+ letters
-        common_words = Counter(words).most_common(50)
+        common_words = Counter(words).most_common(100)
 
         # Use words that appear at least twice as topics
         topics = {word for word, count in common_words if count > 1}
