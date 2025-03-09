@@ -4,4 +4,3 @@ openai>=1.0.0
 python-dotenv
 discord.py
 PyNaCl
-nltk
