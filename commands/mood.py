@@ -11,11 +11,8 @@ class MoodAnalyzer(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
-    async def fetch_messages(self, ctx, user: discord.Member = None, channel: discord.TextChannel = None, limit=10):
+    async def fetch_messages(self, ctx, channel: discord.TextChannel, user: discord.Member = None, limit=10):
         """Fetch the last `limit` messages from a specific user in the given channel."""
-        if channel is None:
-            channel = ctx.channel  # Default to the current channel
-        
         messages = []
         async for message in channel.history(limit=100):  # Search up to 100 messages for context
             if user is None or message.author == user:
@@ -26,12 +23,21 @@ class MoodAnalyzer(commands.Cog):
         return messages
 
     @commands.command()
-    async def mood(self, ctx, user: discord.Member = None, channel: discord.TextChannel = None):
-        """Analyze the mood of a specific user or the last 10 messages in the specified channel."""
+    async def mood(self, ctx, channel: discord.TextChannel = None, user: discord.Member = None):
+        """Analyze the mood of a specific user or the last 10 messages in the specified channel.
+        
+        Usage:
+        `!mood` → Analyzes the current channel.
+        `!mood #general` → Analyzes messages in #general.
+        `!mood #general @user` → Analyzes @user's messages in #general.
+        `!mood @user` → Analyzes @user's messages in the current channel.
+        """
         if config.is_forbidden_channel(ctx):
             return
 
-        messages = await self.fetch_messages(ctx, user=user, channel=channel)
+        channel = channel or ctx.channel  # Default to the current channel
+
+        messages = await self.fetch_messages(ctx, channel=channel, user=user)
         if not messages:
             await ctx.send("No messages found for the specified user or channel.")
             return
