@@ -22,3 +22,7 @@ class BotErrors:
             await ctx.send(f"⛔ You need the **{role_name}** role to use this command.")
             return False
         return commands.check(predicate)  # Fix: `commands` is now properly imported
+
+    async def setup(bot):
+        """Required setup function for loading the cog."""
+        await bot.add_cog(BotErrors())
