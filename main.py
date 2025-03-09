@@ -29,14 +29,14 @@ def is_forbidden_channel(ctx):
     return ctx.channel.name in FORBIDDEN_CHANNELS
 
 # Define the help command
-@bot.command()
-async def help(ctx):
+@bot.command(name="commands")
+async def commands(ctx):
     """Displays a list of available commands."""
     if is_forbidden_channel(ctx):
         return
     
     help_text = "**Available Commands:**\n"
-    help_text += "`!help` - Displays this help message.\n"
+    help_text += "`!commands` - Displays this help message.\n"
     help_text += "`!chat [message]` - Talk to the bot and get AI-generated responses.\n"
     help_text += "`!image [prompt]` - Generate an image using OpenAI's DALL·E API.\n"
     help_text += "`!mood [@user]` - Analyze the mood of a user or the last 10 messages.\n"
