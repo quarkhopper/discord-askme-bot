@@ -3,7 +3,6 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
-from commands.bot_errors import BotErrors  # Import the error handler
 
 class MoodAnalyzer(commands.Cog):
     """Cog for analyzing the mood of a user or recent messages in a channel."""
@@ -12,30 +11,38 @@ class MoodAnalyzer(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
+    async def fetch_messages(self, ctx, user: discord.Member = None, channel: discord.TextChannel = None, limit=10):
+        """Fetch the last `limit` messages from a specific user in the given channel."""
+        if channel is None:
+            channel = ctx.channel  # Default to the current channel
+        
+        messages = []
+        async for message in channel.history(limit=100):  # Search up to 100 messages for context
+            if user is None or message.author == user:
+                messages.append(f"{message.author.display_name}: {message.content}")
+                if len(messages) >= limit:
+                    break
+
+        return messages
+
     @commands.command()
-    async def mood(self, ctx, user: discord.Member = None):
-        """Analyze the mood of a specific user or the last 10 messages."""
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+    async def mood(self, ctx, user: discord.Member = None, channel: discord.TextChannel = None):
+        """Analyze the mood of a specific user or the last 10 messages in the specified channel."""
+        if config.is_forbidden_channel(ctx):
             return
 
+        messages = await self.fetch_messages(ctx, user=user, channel=channel)
+        if not messages:
+            await ctx.send("No messages found for the specified user or channel.")
+            return
+
+        prompt = (
+            "Analyze the emotions in this conversation and suggest how the participant might be feeling:\n\n" +
+            "\n".join(messages) +
+            "\n\nGive a concise emotional summary."
+        )
+
         try:
-            messages = []
-            async for message in ctx.channel.history(limit=100):
-                if user is None or message.author == user:
-                    messages.append(f"{message.author.display_name}: {message.content}")
-                    if len(messages) >= 10:
-                        break
-
-            if not messages:
-                await ctx.send("No messages found for the specified user.")
-                return
-
-            prompt = (
-                "Analyze the emotions in this conversation and suggest how the participant might be feeling:\n\n" +
-                "\n".join(messages) +
-                "\n\nGive a concise emotional summary."
-            )
-
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
