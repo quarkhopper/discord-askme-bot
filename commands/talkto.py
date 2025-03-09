@@ -15,24 +15,18 @@ class TalkSimulator(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500, max_age_days=7):
+    async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500):
         """Fetches messages from a user, limited to 10 per channel, 
-        with a total cap of 500, and excluding inactive channels."""
+        with a total cap of 500, without excluding inactive channels."""
         messages = []
-        cutoff_time = datetime.now(datetime.timezone.utc) - timedelta(days=max_age_days)
 
         for channel in ctx.guild.text_channels:
             if not channel.permissions_for(ctx.guild.me).read_messages:
                 continue  # Skip channels the bot can't read
 
-            # Check if the channel has had a recent message
+            channel_message_count = 0
+
             try:
-                last_message = [msg async for msg in channel.history(limit=1, oldest_first=False)]
-                if not last_message or last_message[0].created_at < cutoff_time:
-                    continue  # Skip inactive channels
-
-                channel_message_count = 0
-
                 async for message in channel.history(limit=100, oldest_first=False):
                     if message.author == user:
                         messages.append(message.content)
