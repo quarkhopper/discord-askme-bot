@@ -61,13 +61,15 @@ async def clear(ctx, limit: int = 100):
 # Define a command to find a message matching a partial string and its position
 @bot.command()
 async def match(ctx, *, text: str):
-    """Finds a message that matches a partial string and reports how many messages back it is."""
+    """Finds a message that matches a partial string and reports how many messages back it is, excluding the command message."""
     if is_forbidden_channel(ctx):
         return
     
     try:
-        count = 0
+        count = -1  # Start at -1 to ignore the command message itself
         async for message in ctx.channel.history(limit=100):
+            if message.id == ctx.message.id:
+                continue  # Skip the command message
             count += 1
             if text in message.content:
                 await ctx.send(f"🔎 Found message {count} messages ago: `{message.content}` (by {message.author.display_name})")
