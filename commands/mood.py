@@ -26,7 +26,7 @@ class MoodAnalyzer(commands.Cog):
         return messages
 
     @commands.command()
-    async def mood(self, ctx, *, target: commands.Greedy[discord.Member | discord.TextChannel] = None):
+    async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.
         
         Usage:
@@ -41,16 +41,22 @@ class MoodAnalyzer(commands.Cog):
         user = None
         channel = ctx.channel  # Default to current channel
 
-        # Ensure target is always treated as a list
-        if target and not isinstance(target, list):
-            target = [target]  # Convert single object into a list
+        for arg in args:
+            # Try to resolve argument as a user
+            potential_user = discord.utils.get(ctx.guild.members, mention=arg) or discord.utils.get(ctx.guild.members, name=arg)
+            if potential_user:
+                user = potential_user
+                continue
 
-        if target:
-            for item in target:
-                if isinstance(item, discord.TextChannel):
-                    channel = item  # Set the channel
-                elif isinstance(item, discord.Member):
-                    user = item  # Set the user
+            # Try to resolve argument as a channel
+            potential_channel = discord.utils.get(ctx.guild.text_channels, mention=arg) or discord.utils.get(ctx.guild.text_channels, name=arg)
+            if potential_channel:
+                channel = potential_channel
+                continue
+
+            # If it wasn't a valid user or channel, notify the user
+            await ctx.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
+            return
 
         messages = await self.fetch_messages(ctx, user=user, channel=channel)
         if not messages:
