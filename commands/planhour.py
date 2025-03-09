@@ -21,6 +21,7 @@ class PlanHour(commands.Cog):
         return messages
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def planhour(self, ctx):
         """Generates a mildly absurd but plausible plan for the next hour based on recent messages.
         

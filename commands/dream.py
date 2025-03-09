@@ -13,6 +13,7 @@ class DreamAnalysis(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def dream(self, ctx, *, description: str):
         """Analyze a dream and provide an interpretation.
         

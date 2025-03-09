@@ -10,6 +10,7 @@ class CommandsHelp(commands.Cog):
         self.bot = bot  # Store bot instance
 
     @commands.command(name="commands")
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def list_commands(self, ctx):
         """Displays a list of available commands dynamically."""
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check

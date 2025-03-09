@@ -21,6 +21,7 @@ class PlanLife(commands.Cog):
         return messages
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def planlife(self, ctx):
         """Generates a wildly exaggerated but somewhat realistic lifelong mission based on recent messages.
         

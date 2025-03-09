@@ -68,6 +68,7 @@ class MoodAnalyzer(commands.Cog):
         return channel
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.
         

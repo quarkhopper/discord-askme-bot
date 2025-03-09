@@ -61,6 +61,7 @@ class MessageUtils(commands.Cog):
 
     @commands.command()
     @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def clearafter(self, ctx, *, text: str):
         """Clears all messages after a matched message using the logic from match and clear.
         

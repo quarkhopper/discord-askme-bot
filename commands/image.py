@@ -13,6 +13,7 @@ class ImageGen(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def image(self, ctx, *, prompt: str):
         """Generate an image using OpenAI's DALL·E API.
         

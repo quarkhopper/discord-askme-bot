@@ -14,6 +14,7 @@ class Chat(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
         
