@@ -10,8 +10,9 @@ def setup(bot):
             return
         
         try:
+            # modified to clear messages not counting the command also 
             deleted = await ctx.channel.purge(limit=min(limit + 1, 100))
-            await ctx.send(f"✅ Cleared {len(deleted)} messages.", delete_after=3)
+            await ctx.send(f"✅ Cleared {len(deleted - 1)} messages.", delete_after=3)
         except Exception as e:
             config.logging.error(f"Error clearing messages: {e}")
             await ctx.send("An error occurred while clearing messages.")
