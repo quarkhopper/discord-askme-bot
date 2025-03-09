@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+import re  # Import regex module to extract IDs from mentions
 
 class MoodAnalyzer(commands.Cog):
     """Cog for analyzing the mood of a user or recent messages in a channel."""
@@ -25,6 +26,13 @@ class MoodAnalyzer(commands.Cog):
 
         return messages
 
+    def extract_id(self, mention):
+        """Extracts the numeric ID from a Discord mention format (<@ID> or <#ID>)."""
+        match = re.match(r"<@!?(\d+)>|<#(\d+)>", mention)
+        if match:
+            return int(match.group(1) or match.group(2))
+        return None
+
     @commands.command()
     async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.
@@ -42,14 +50,24 @@ class MoodAnalyzer(commands.Cog):
         channel = ctx.channel  # Default to current channel
 
         for arg in args:
+            arg_id = self.extract_id(arg)  # Extract ID if it's a mention
+            
             # Try to resolve argument as a user
-            potential_user = discord.utils.get(ctx.guild.members, mention=arg) or discord.utils.get(ctx.guild.members, name=arg)
+            if arg_id:
+                potential_user = ctx.guild.get_member(arg_id)
+            else:
+                potential_user = discord.utils.get(ctx.guild.members, name=arg)
+
             if potential_user:
                 user = potential_user
                 continue
 
             # Try to resolve argument as a channel
-            potential_channel = discord.utils.get(ctx.guild.text_channels, mention=arg) or discord.utils.get(ctx.guild.text_channels, name=arg)
+            if arg_id:
+                potential_channel = ctx.guild.get_channel(arg_id)
+            else:
+                potential_channel = discord.utils.get(ctx.guild.text_channels, name=arg)
+
             if potential_channel:
                 channel = potential_channel
                 continue
