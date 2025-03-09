@@ -17,4 +17,5 @@ def setup(bot, openai_client):
         help_text += "`!clear` - Clears up to 100 recent messages.\n"
         help_text += "`!match [text]` - Finds a message that matches a partial string and its position in history.\n"
         help_text += "`!clearafter [text]` - Clears all messages after a matched message.\n"
+        help_text += "`!dream [text]` - Interpret the contents of a dream.\n"
         await ctx.send(help_text)
