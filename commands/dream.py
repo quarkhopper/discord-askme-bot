@@ -1,8 +1,7 @@
 from discord.ext import commands
 import config  # Import shared config
 
-# OpenAI client will be passed during bot setup
-def setup(bot, openai_client):
+def setup(bot, openai_client):  # Add openai_client as an argument
     @bot.command()
     async def dream(ctx, *, description: str):
         """Analyze a dream and provide an interpretation."""
@@ -10,7 +9,6 @@ def setup(bot, openai_client):
             return
         
         try:
-            # Generate dream analysis using OpenAI
             response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -20,10 +18,8 @@ def setup(bot, openai_client):
             )
             analysis = response.choices[0].message.content.strip()
 
-            # Log and send the response
-            config.logger.info(f"Dream analyzed: {description[:50]}...")  # Log first 50 chars for context
+            config.logger.info(f"Dream analyzed: {description[:50]}...")
             await ctx.send(f"💭 **Dream Interpretation:** {analysis}")
-
         except Exception as e:
             config.logger.error(f"Error analyzing dream: {e}")
             await ctx.send("An error occurred while analyzing the dream.")

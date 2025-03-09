@@ -1,8 +1,7 @@
 from discord.ext import commands
 import config  # Import shared config
 
-# OpenAI client will be passed during bot setup
-def setup(bot, openai_client):
+def setup(bot, openai_client):  # Add openai_client as an argument
     @bot.command()
     async def chat(ctx, *, message: str):
         """Talk to the bot and get AI-generated responses."""
