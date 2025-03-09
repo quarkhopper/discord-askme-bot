@@ -85,7 +85,7 @@ async def match(ctx, *, text: str):
 
 # Define a command to clear messages after a matched message
 @bot.command()
-async def clearafter(ctx, *, text: str):
+async def clearafter(ctx, *, text: str):  # Now clears one extra message back
     """Clears all messages after a matched message using the logic from match and clear."""
     if is_forbidden_channel(ctx):
         return
@@ -103,7 +103,7 @@ async def clearafter(ctx, *, text: str):
             await ctx.send("❌ No messages found containing the specified text.")
             return
         
-        deleted = await ctx.channel.purge(limit=count)
+        deleted = await ctx.channel.purge(limit=count + 1)
         await ctx.send(f"✅ Cleared {len(deleted)} messages after `{text}`.", delete_after=3)
     except Exception as e:
         logging.error(f"Error clearing messages after match: {e}")
