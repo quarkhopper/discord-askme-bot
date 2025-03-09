@@ -31,21 +31,37 @@ class PlanHour(commands.Cog):
         return None
 
     async def resolve_member(self, ctx, identifier):
-        """Resolves a user by mention, name, or ID."""
+        """Tries to resolve a user by mention, name, or ID (Copied from mood.py)."""
+        member = None
         user_id = self.extract_id(identifier)
+
         if user_id:
-            member = ctx.guild.get_member(user_id) or await ctx.bot.fetch_user(user_id)
+            member = ctx.guild.get_member(user_id)  # Fast lookup in cache
+            if not member:  # If not found in cache, fetch from Discord
+                try:
+                    member = await ctx.bot.fetch_user(user_id)
+                except discord.NotFound:
+                    return None
         else:
             member = discord.utils.get(ctx.guild.members, name=identifier)
+
         return member
 
     async def resolve_channel(self, ctx, identifier):
-        """Resolves a channel by mention, name, or ID."""
+        """Tries to resolve a channel by mention, name, or ID."""
+        channel = None
         channel_id = self.extract_id(identifier)
+
         if channel_id:
-            channel = ctx.guild.get_channel(channel_id) or await ctx.bot.fetch_channel(channel_id)
+            channel = ctx.guild.get_channel(channel_id)
+            if not channel:
+                try:
+                    channel = await ctx.bot.fetch_channel(channel_id)
+                except discord.NotFound:
+                    return None
         else:
             channel = discord.utils.get(ctx.guild.text_channels, name=identifier)
+
         return channel
 
     @commands.command()
