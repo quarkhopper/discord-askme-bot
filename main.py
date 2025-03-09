@@ -128,19 +128,25 @@ async def clearafter(ctx, *, text: str):
         return
     
     try:
-        messages_to_delete = []
-        found = False
+        target_message = None
         async for message in ctx.channel.history(limit=100):
-            if found:
-                messages_to_delete.append(message)
-            elif text in message.content:
-                found = True
+            if text in message.content:
+                target_message = message
+                break
+
+        if not target_message:
+            await ctx.send("❌ No messages found containing the specified text.")
+            return
+
+        messages_to_delete = []
+        async for message in ctx.channel.history(after=target_message, limit=100):
+            messages_to_delete.append(message)
 
         if messages_to_delete:
             await ctx.channel.delete_messages(messages_to_delete)
             await ctx.send("✅ Messages cleared after the specified text.")
         else:
-            await ctx.send("❌ No messages found containing the specified text.")
+            await ctx.send("❌ No messages to delete after the specified text.")
     except Exception as e:
         logging.error(f"Error clearing messages: {e}")
         await ctx.send("An error occurred while clearing messages.")
