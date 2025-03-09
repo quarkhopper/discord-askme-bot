@@ -11,6 +11,7 @@ class MessageUtils(commands.Cog):
 
     @commands.command()
     @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def clear(self, ctx, limit: int = None):
         """Clears a specified number of recent messages (default: 1, max: 100).
             
