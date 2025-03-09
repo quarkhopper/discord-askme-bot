@@ -23,7 +23,10 @@ class Chat(commands.Cog):
                 messages=[{"role": "user", "content": message}]
             )
 
-            await ctx.send(response["choices"][0]["message"]["content"])
+            # Extract response correctly
+            reply = response.choices[0].message.content  # Correct way to access content
+
+            await ctx.send(reply)
         except Exception as e:
             await ctx.send(f"Error: {e}")
 
