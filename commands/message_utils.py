@@ -10,9 +10,10 @@ class MessageUtils(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
     async def clear(self, ctx, limit: int = None):
         """Clears a specified number of recent messages (default: 1, max: 100)."""
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+        if await BotErrors.check_forbidden_channel(ctx):  
             return
 
         limit = 1 if limit is None else min(limit, 100)
@@ -27,7 +28,7 @@ class MessageUtils(commands.Cog):
     @commands.command()
     async def match(self, ctx, *, text: str):
         """Finds a message that matches a partial string and reports its position in history."""
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+        if await BotErrors.check_forbidden_channel(ctx):  
             return
 
         try:
@@ -48,22 +49,22 @@ class MessageUtils(commands.Cog):
             return None
 
     @commands.command()
+    @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
     async def clearafter(self, ctx, *, text: str):
         """Clears all messages after a matched message using the logic from match and clear."""
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+        if await BotErrors.check_forbidden_channel(ctx):  
             return
 
         try:
-            count = await self.match(ctx, text=text)  # Call match command within Cog
+            count = await self.match(ctx, text=text)  
             if count is None:
                 return  
 
-            deleted = await ctx.channel.purge(limit=count + 2)  # Deletes messages *after* the match
+            deleted = await ctx.channel.purge(limit=count + 2)  
             await ctx.send(f"✅ Cleared {len(deleted)} messages after `{text}`.", delete_after=3)
         except Exception as e:
             config.logger.error(f"Error clearing messages after match: {e}")
             await ctx.send("An error occurred while clearing messages.")
-
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))
