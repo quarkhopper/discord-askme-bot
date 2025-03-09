@@ -16,7 +16,7 @@ def setup(bot):
                     continue  # Skip the command message
                 count += 1
                 if text in message.content:
-                    await ctx.send(f"🔎 Found message {count} messages ago: `{message.content}` (by {message.author.display_name})")
+                    await ctx.send(f"🔎 Found message {count + 1} messages ago: `{message.content}` (by {message.author.display_name})")
                     return count  # Return the message count for reuse
             
             await ctx.send("❌ No messages found containing the specified text.")
