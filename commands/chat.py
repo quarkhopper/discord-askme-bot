@@ -1,21 +1,31 @@
+import discord
 from discord.ext import commands
+import openai
 import config  # Import shared config
+import os
 
-def setup(bot, openai_client):  # Add openai_client as an argument
-    @bot.command()
-    async def chat(ctx, *, message: str):
+class Chat(commands.Cog):
+    """Cog for handling AI chat commands."""
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
+
+    @commands.command()
+    async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses."""
         if config.is_forbidden_channel(ctx):
             return
 
         try:
-            response = openai_client.chat.completions.create(
+            response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": message}],
+                messages=[{"role": "user", "content": message}]
             )
-            reply = response.choices[0].message.content.strip()
-            config.logger.info(f"Chat response generated for: {message}")
-            await ctx.send(reply)
+
+            await ctx.send(response["choices"][0]["message"]["content"])
         except Exception as e:
-            config.logger.error(f"Error generating chat response: {e}")
-            await ctx.send("An error occurred while processing your request.")
+            await ctx.send(f"Error: {e}")
+
+async def setup(bot):
+    await bot.add_cog(Chat(bot))

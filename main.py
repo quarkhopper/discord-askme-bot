@@ -1,11 +1,11 @@
+import asyncio
 import discord
 import openai
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
-import importlib.util
-import pathlib
 import config  # Import shared config
+import pathlib
 
 # Load environment variables
 load_dotenv()
@@ -15,7 +15,7 @@ openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Discord bot setup
 intents = discord.Intents.default()
-intents.message_content = True  # Allows access to the content of messages
+intents.message_content = True  # Allows access to message content
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Log when bot is ready
@@ -23,21 +23,23 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     config.logger.info(f"Logged in as {bot.user}")
 
-# Dynamically load command modules from the 'commands' directory and pass openai_client
-commands_dir = pathlib.Path("commands")
-if commands_dir.exists():
-    for command_file in commands_dir.glob("*.py"):
-        module_name = f"commands.{command_file.stem}"
-        spec = importlib.util.spec_from_file_location(module_name, command_file)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        if hasattr(module, "setup"):
-            module.setup(bot, openai_client)  # Pass the OpenAI client to command modules
+# Load all Cogs from the 'commands' directory
+async def load_cogs():
+    commands_dir = pathlib.Path("commands")
+    if commands_dir.exists():
+        for command_file in commands_dir.glob("*.py"):
+            module_name = f"commands.{command_file.stem}"
+            try:
+                await bot.load_extension(module_name)
+                config.logger.info(f"Loaded {module_name}")
+            except Exception as e:
+                config.logger.error(f"Failed to load {module_name}: {e}")
 
-# Start the Discord bot
-def run_bot():
+# Start the bot
+async def run_bot():
     config.logger.info("Starting Discord bot...")
-    bot.run(os.getenv("DISCORD_BOT_TOKEN"))
+    await load_cogs()
+    await bot.start(os.getenv("DISCORD_BOT_TOKEN"))
 
 if __name__ == "__main__":
-    run_bot()
+    asyncio.run(run_bot())
