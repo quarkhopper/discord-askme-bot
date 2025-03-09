@@ -139,7 +139,7 @@ async def clearafter(ctx, *, text: str):
             return
 
         messages_to_delete = []
-        async for message in ctx.channel.history(after=target_message, limit=100):
+        async for message in ctx.channel.history(after=target_message.created_at, limit=100):
             messages_to_delete.append(message)
 
         if messages_to_delete:
