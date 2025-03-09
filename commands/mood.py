@@ -51,23 +51,15 @@ class MoodAnalyzer(commands.Cog):
 
         for arg in args:
             arg_id = self.extract_id(arg)  # Extract ID if it's a mention
-            
-            # Try to resolve argument as a user
-            if arg_id:
-                potential_user = ctx.guild.get_member(arg_id)
-            else:
-                potential_user = discord.utils.get(ctx.guild.members, name=arg)
 
+            # Try to resolve argument as a user
+            potential_user = ctx.guild.get_member(arg_id) if arg_id else discord.utils.get(ctx.guild.members, name=arg)
             if potential_user:
                 user = potential_user
                 continue
 
             # Try to resolve argument as a channel
-            if arg_id:
-                potential_channel = ctx.guild.get_channel(arg_id)
-            else:
-                potential_channel = discord.utils.get(ctx.guild.text_channels, name=arg)
-
+            potential_channel = ctx.guild.get_channel(arg_id) if arg_id else discord.utils.get(ctx.guild.text_channels, name=arg)
             if potential_channel:
                 channel = potential_channel
                 continue
