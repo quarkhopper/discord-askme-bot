@@ -57,11 +57,12 @@ class MessageUtils(commands.Cog):
             if count is None:
                 return  
 
-            deleted = await ctx.channel.purge(limit=count + 1)
+            deleted = await ctx.channel.purge(limit=count + 1)  # Deletes messages *after* the match
             await ctx.send(f"✅ Cleared {len(deleted)} messages after `{text}`.", delete_after=3)
         except Exception as e:
             config.logger.error(f"Error clearing messages after match: {e}")
             await ctx.send("An error occurred while clearing messages.")
+
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))
