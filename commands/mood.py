@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class MoodAnalyzer(commands.Cog):
     """Cog for analyzing the mood of a user or recent messages in a channel."""
@@ -14,7 +15,7 @@ class MoodAnalyzer(commands.Cog):
     @commands.command()
     async def mood(self, ctx, user: discord.Member = None):
         """Analyze the mood of a specific user or the last 10 messages."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:

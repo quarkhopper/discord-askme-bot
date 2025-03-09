@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import config  # Import shared config
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class MessageUtils(commands.Cog):
     """Cog for message management commands (clear, match, clearafter)."""
@@ -11,7 +12,7 @@ class MessageUtils(commands.Cog):
     @commands.command()
     async def clear(self, ctx, limit: int = None):
         """Clears a specified number of recent messages (default: 1, max: 100)."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         limit = 1 if limit is None else min(limit, 100)
@@ -26,7 +27,7 @@ class MessageUtils(commands.Cog):
     @commands.command()
     async def match(self, ctx, *, text: str):
         """Finds a message that matches a partial string and reports its position in history."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:
@@ -49,7 +50,7 @@ class MessageUtils(commands.Cog):
     @commands.command()
     async def clearafter(self, ctx, *, text: str):
         """Clears all messages after a matched message using the logic from match and clear."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:

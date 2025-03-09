@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class DreamAnalysis(commands.Cog):
     """Cog for analyzing and interpreting dreams."""
@@ -14,7 +15,7 @@ class DreamAnalysis(commands.Cog):
     @commands.command()
     async def dream(self, ctx, *, description: str):
         """Analyze a dream and provide an interpretation."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:

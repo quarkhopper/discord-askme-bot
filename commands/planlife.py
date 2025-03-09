@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class PlanLife(commands.Cog):
     """Cog for generating an exaggerated but semi-realistic lifelong mission based on recent messages."""
@@ -22,7 +23,7 @@ class PlanLife(commands.Cog):
     @commands.command()
     async def planlife(self, ctx):
         """Generates a wildly exaggerated but somewhat realistic lifelong mission based on recent messages."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         messages = await self.fetch_user_messages(ctx)

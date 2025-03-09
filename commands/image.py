@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class ImageGen(commands.Cog):
     """Cog for generating images using OpenAI's DALL·E API."""
@@ -14,7 +15,7 @@ class ImageGen(commands.Cog):
     @commands.command()
     async def image(self, ctx, *, prompt: str):
         """Generate an image using OpenAI's DALL·E API."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:

@@ -3,6 +3,8 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
+
 
 class Chat(commands.Cog):
     """Cog for handling AI chat commands."""
@@ -14,7 +16,7 @@ class Chat(commands.Cog):
     @commands.command()
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         try:

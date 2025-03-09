@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import config  # Import shared config
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class CommandsHelp(commands.Cog):
     """Cog that lists all available commands."""
@@ -11,7 +12,7 @@ class CommandsHelp(commands.Cog):
     @commands.command(name="commands")
     async def list_commands(self, ctx):
         """Displays a list of available commands dynamically."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         help_text = "**Available Commands:**\n"

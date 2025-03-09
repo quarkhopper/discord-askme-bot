@@ -3,6 +3,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+from commands.bot_errors import BotErrors  # Import the error handler
 
 class PlanHour(commands.Cog):
     """Cog for generating a humorous plan for the next hour based on recent messages."""
@@ -22,7 +23,7 @@ class PlanHour(commands.Cog):
     @commands.command()
     async def planhour(self, ctx):
         """Generates a mildly absurd but plausible plan for the next hour based on recent messages."""
-        if config.is_forbidden_channel(ctx):
+        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
         messages = await self.fetch_user_messages(ctx)
