@@ -41,7 +41,7 @@ async def commands(ctx):
     help_text += "`!image [prompt]` - Generate an image using OpenAI's DALL·E API.\n"
     help_text += "`!mood [@user]` - Analyze the mood of a user or the last 10 messages.\n"
     help_text += "`!clear` - Clears up to 100 recent messages.\n"
-    help_text += "`!match [text]` - Finds a message that matches a partial string.\n"
+    help_text += "`!match [text]` - Finds a message that matches a partial string and its position in history.\n"
     await ctx.send(help_text)
 
 # Define a command to clear up to 100 recent messages
@@ -58,17 +58,19 @@ async def clear(ctx, limit: int = 100):
         logging.error(f"Error clearing messages: {e}")
         await ctx.send("An error occurred while clearing messages.")
 
-# Define a command to find a message matching a partial string
+# Define a command to find a message matching a partial string and its position
 @bot.command()
 async def match(ctx, *, text: str):
-    """Finds a message that matches a partial string."""
+    """Finds a message that matches a partial string and reports how many messages back it is."""
     if is_forbidden_channel(ctx):
         return
     
     try:
+        count = 0
         async for message in ctx.channel.history(limit=100):
+            count += 1
             if text in message.content:
-                await ctx.send(f"🔎 Found message: `{message.content}` (by {message.author.display_name})")
+                await ctx.send(f"🔎 Found message {count} messages ago: `{message.content}` (by {message.author.display_name})")
                 return
         
         await ctx.send("❌ No messages found containing the specified text.")
