@@ -23,6 +23,6 @@ class BotErrors:
             return False
         return commands.check(predicate)  # Fix: `commands` is now properly imported
 
-    async def setup(bot):
-        """Required setup function for loading the cog."""
-        await bot.add_cog(BotErrors())
+async def setup(bot):
+    """Required setup function for loading the cog."""
+    await bot.add_cog(BotErrors())
