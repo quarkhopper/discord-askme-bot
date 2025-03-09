@@ -1,8 +1,8 @@
 from discord.ext import commands
-import openai
 import config  # Import shared config
 
-def setup(bot):
+# OpenAI client will be passed during bot setup
+def setup(bot, openai_client):
     @bot.command()
     async def chat(ctx, *, message: str):
         """Talk to the bot and get AI-generated responses."""
@@ -10,11 +10,11 @@ def setup(bot):
             return
 
         try:
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": message}],
             )
-            reply = response["choices"][0]["message"]["content"].strip()
+            reply = response.choices[0].message.content.strip()
             config.logger.info(f"Chat response generated for: {message}")
             await ctx.send(reply)
         except Exception as e:
