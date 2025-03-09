@@ -1,27 +1,47 @@
 import discord
 from discord.ext import commands
 import config  # Import shared config
-from commands.bot_errors import BotErrors  # Import the error handler
 
 class CommandsHelp(commands.Cog):
-    """Cog that lists all available commands."""
+    """Cog that lists all available commands and their arguments."""
 
     def __init__(self, bot):
-        self.bot = bot  # Store bot instance
+        self.bot = bot
 
     @commands.command(name="commands")
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
-    async def list_commands(self, ctx):
-        """Displays a list of available commands dynamically."""
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+    async def list_commands(self, ctx, command_name: str = None):
+        """Displays a list of available commands, or detailed help for a specific command.
+
+        Usage:
+        `!commands` → Shows a list of available commands.
+        `!commands <command>` → Shows detailed usage for a specific command.
+        """
+        if config.is_forbidden_channel(ctx):
             return
 
-        help_text = "**Available Commands:**\n"
+        if command_name:
+            # ✅ Show detailed help for a specific command
+            command = self.bot.get_command(command_name)
+            if not command:
+                await ctx.send(f"⚠️ No command named `{command_name}` found.")
+                return
 
-        # Dynamically list all loaded commands
+            usage = f"**`!{command.name}`**\n"
+            if command.help:
+                usage += f"{command.help}\n"
+
+            params = [f"<{param}>" for param in command.clean_params]
+            if params:
+                usage += f"**Usage:** `!{command.name} {' '.join(params)}`\n"
+
+            await ctx.send(usage)
+            return
+
+        # ✅ Show general command list (without full usage details)
+        help_text = "**Available Commands:**\n"
         for command in self.bot.commands:
-            if command.help:  # Only include commands that have help text
-                help_text += f"`!{command.name}` - {command.help}\n"
+            if command.help:
+                help_text += f"🔹 **`!{command.name}`** - {command.help.splitlines()[0]}\n"
 
         await ctx.send(help_text)
 
