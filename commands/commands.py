@@ -1,7 +1,7 @@
 from discord.ext import commands
 import config as config  # Import shared config
 
-def setup(bot):
+def setup(bot, openai_client):
     # Define the help command
     @bot.command(name="commands")
     async def commands(ctx):

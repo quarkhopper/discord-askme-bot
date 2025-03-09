@@ -1,7 +1,7 @@
 from discord.ext import commands
 import config as config  # Import shared config
 
-def setup(bot):
+def setup(bot, openai_client):
     # Define a command to clear messages after a matched message
     @bot.command()
     async def clearafter(ctx, *, text: str):  # Now clears one extra message back

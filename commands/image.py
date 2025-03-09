@@ -2,7 +2,7 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 
-def setup(bot):
+def setup(bot, openai_client):
     @bot.command()
     async def image(ctx, *, prompt: str):
         """Generate an image using OpenAI's DALL·E API"""

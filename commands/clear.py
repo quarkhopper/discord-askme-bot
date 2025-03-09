@@ -1,7 +1,7 @@
 from discord.ext import commands
 import config as config  # Import shared config
 
-def setup(bot):
+def setup(bot, openai_client):
     # Define a command to clear messages with defaults and limits
     @bot.command()
     async def clear(ctx, limit: int = None):

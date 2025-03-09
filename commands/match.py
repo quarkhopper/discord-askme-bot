@@ -1,7 +1,7 @@
 from discord.ext import commands
 import config as config  # Import shared config
 
-def setup(bot):
+def setup(bot, openai_client):
     # Define a command to find a message matching a partial string and its position
     @bot.command()
     async def match(ctx, *, text: str):
