@@ -33,6 +33,40 @@ class MoodAnalyzer(commands.Cog):
             return int(match.group(1) or match.group(2))
         return None
 
+    async def resolve_member(self, ctx, identifier):
+        """Tries to resolve a user by mention, name, or ID."""
+        member = None
+        user_id = self.extract_id(identifier)
+
+        if user_id:
+            member = ctx.guild.get_member(user_id)  # Fast lookup
+            if not member:  # If not in cache, fetch user
+                try:
+                    member = await ctx.bot.fetch_user(user_id)
+                except discord.NotFound:
+                    return None
+        else:
+            member = discord.utils.get(ctx.guild.members, name=identifier)
+        
+        return member
+
+    async def resolve_channel(self, ctx, identifier):
+        """Tries to resolve a channel by mention, name, or ID."""
+        channel = None
+        channel_id = self.extract_id(identifier)
+
+        if channel_id:
+            channel = ctx.guild.get_channel(channel_id)
+            if not channel:
+                try:
+                    channel = await ctx.bot.fetch_channel(channel_id)
+                except discord.NotFound:
+                    return None
+        else:
+            channel = discord.utils.get(ctx.guild.text_channels, name=identifier)
+
+        return channel
+
     @commands.command()
     async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.
@@ -50,21 +84,17 @@ class MoodAnalyzer(commands.Cog):
         channel = ctx.channel  # Default to current channel
 
         for arg in args:
-            arg_id = self.extract_id(arg)  # Extract ID if it's a mention
-
-            # Try to resolve argument as a user
-            potential_user = ctx.guild.get_member(arg_id) if arg_id else discord.utils.get(ctx.guild.members, name=arg)
-            if potential_user:
-                user = potential_user
+            resolved_user = await self.resolve_member(ctx, arg)
+            if resolved_user:
+                user = resolved_user
                 continue
 
-            # Try to resolve argument as a channel
-            potential_channel = ctx.guild.get_channel(arg_id) if arg_id else discord.utils.get(ctx.guild.text_channels, name=arg)
-            if potential_channel:
-                channel = potential_channel
+            resolved_channel = await self.resolve_channel(ctx, arg)
+            if resolved_channel:
+                channel = resolved_channel
                 continue
 
-            # If it wasn't a valid user or channel, notify the user
+            # If neither user nor channel matched
             await ctx.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
             return
 
