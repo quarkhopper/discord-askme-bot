@@ -14,7 +14,11 @@ class DreamAnalysis(commands.Cog):
 
     @commands.command()
     async def dream(self, ctx, *, description: str):
-        """Analyze a dream and provide an interpretation."""
+        """Analyze a dream and provide an interpretation.
+        
+        Usage:
+        `!dream I was flying over the ocean` → Returns a dream interpretation.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 

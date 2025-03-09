@@ -22,7 +22,11 @@ class PlanHour(commands.Cog):
 
     @commands.command()
     async def planhour(self, ctx):
-        """Generates a mildly absurd but plausible plan for the next hour based on recent messages."""
+        """Generates a mildly absurd but plausible plan for the next hour based on recent messages.
+        
+        Usage:
+        `!planhour` → Extends your recent activities into a fun prediction.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 

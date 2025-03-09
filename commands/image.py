@@ -14,7 +14,11 @@ class ImageGen(commands.Cog):
 
     @commands.command()
     async def image(self, ctx, *, prompt: str):
-        """Generate an image using OpenAI's DALL·E API."""
+        """Generate an image using OpenAI's DALL·E API.
+        
+        Usage:
+        `!image a futuristic city at sunset` → Generates an image of a futuristic city at sunset.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 

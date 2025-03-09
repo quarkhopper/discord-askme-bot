@@ -15,7 +15,13 @@ class Chat(commands.Cog):
 
     @commands.command()
     async def chat(self, ctx, *, message: str):
-        """Talk to the bot and get AI-generated responses."""
+        """Talk to the bot and get AI-generated responses.
+        
+        Usage:
+        `!chat Hello bot!` → Sends "Hello bot!" to the AI and returns a response.
+        """
+
+        
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 

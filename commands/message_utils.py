@@ -12,7 +12,12 @@ class MessageUtils(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
     async def clear(self, ctx, limit: int = None):
-        """Clears a specified number of recent messages (default: 1, max: 100)."""
+        """Clears a specified number of recent messages (default: 1, max: 100).
+            
+        Usage:
+        `!clear` → Clears the last message.
+        `!clear 5` → Clears the last 5 messages.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  
             return
 
@@ -26,8 +31,13 @@ class MessageUtils(commands.Cog):
             await ctx.send("An error occurred while clearing messages.")
 
     @commands.command()
+    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def match(self, ctx, *, text: str):
-        """Finds a message that matches a partial string and reports its position in history."""
+        """Finds a message that matches a partial string and reports its position in history.
+        
+        Usage:
+        `!match hello` → Finds the most recent message containing "hello" and reports how many messages ago it was.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  
             return
 
@@ -51,7 +61,11 @@ class MessageUtils(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Fun Police")  # Restrict to users with "Fun Police" role
     async def clearafter(self, ctx, *, text: str):
-        """Clears all messages after a matched message using the logic from match and clear."""
+        """Clears all messages after a matched message using the logic from match and clear.
+        
+        Usage:
+        `!clearafter hello` → Finds "hello" and deletes all messages after it.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  
             return
 

@@ -22,7 +22,11 @@ class PlanLife(commands.Cog):
 
     @commands.command()
     async def planlife(self, ctx):
-        """Generates a wildly exaggerated but somewhat realistic lifelong mission based on recent messages."""
+        """Generates a wildly exaggerated but somewhat realistic lifelong mission based on recent messages.
+        
+        Usage:
+        `!planlife` → Creates a life plan based on your past messages.
+        """
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
