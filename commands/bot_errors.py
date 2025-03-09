@@ -1,8 +1,12 @@
 import discord
-from discord.ext import commands  # Import commands
+from discord.ext import commands
 
-class BotErrors:
+class BotErrors(commands.Cog):  # ✅ Inherit from commands.Cog
     """Handles centralized error checks and messages for the bot."""
+
+    def __init__(self, bot):
+        self.bot = bot  # ✅ Save the bot reference
+        super().__init__()  # ✅ Ensure proper Cog initialization
 
     @staticmethod
     async def check_forbidden_channel(ctx):
@@ -21,8 +25,9 @@ class BotErrors:
                 return True
             await ctx.send(f"⛔ You need the **{role_name}** role to use this command.")
             return False
-        return commands.check(predicate)  # Fix: `commands` is now properly imported
+        return commands.check(predicate)
 
+# ✅ Properly register the Cog with the bot
 async def setup(bot):
     """Required setup function for loading the cog."""
-    await bot.add_cog(BotErrors())
+    await bot.add_cog(BotErrors(bot))  # ✅ Pass bot instance to the Cog
