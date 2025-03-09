@@ -5,6 +5,7 @@ import config  # Import shared config
 import os
 import re  # Regex for extracting words
 from collections import Counter
+from datetime import datetime, timedelta
 from commands.bot_errors import BotErrors  # Error handler
 
 class TalkSimulator(commands.Cog):
@@ -14,21 +15,38 @@ class TalkSimulator(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    async def fetch_user_messages(self, ctx, user: discord.Member, limit=10):
-        """Fetch the last `limit` messages from the specified user across all channels."""
+    async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500, max_age_days=7):
+        """Fetches messages from a user, limited to 10 per channel, 
+        with a total cap of 500, and excluding inactive channels."""
         messages = []
+        cutoff_time = datetime.now(datetime.timezone.utc) - timedelta(days=max_age_days)
+
         for channel in ctx.guild.text_channels:
             if not channel.permissions_for(ctx.guild.me).read_messages:
                 continue  # Skip channels the bot can't read
-            
+
+            # Check if the channel has had a recent message
             try:
-                async for message in channel.history(limit=100):  # Fetch more for filtering
+                last_message = [msg async for msg in channel.history(limit=1, oldest_first=False)]
+                if not last_message or last_message[0].created_at < cutoff_time:
+                    continue  # Skip inactive channels
+
+                channel_message_count = 0
+
+                async for message in channel.history(limit=100, oldest_first=False):
                     if message.author == user:
                         messages.append(message.content)
-                        if len(messages) >= limit:
-                            return messages
+                        channel_message_count += 1
+
+                    if len(messages) >= total_limit:
+                        return messages  # Stop if we've hit the total limit
+
+                    if channel_message_count >= limit_per_channel:
+                        break  # Stop fetching from this channel
+
             except discord.Forbidden:
                 continue  # Skip channels with permission issues
+
         return messages
 
     def extract_topics_and_vocab(self, messages):
