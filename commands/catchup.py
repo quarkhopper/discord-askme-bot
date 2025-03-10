@@ -18,60 +18,52 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def catchup(self, ctx, channel: discord.TextChannel = None, max_users: int = 10):
-        """Summarizes activity across all channels or within a single specified channel.
-        
-        Usage:
-        `!catchup` → Fetches and summarizes messages from the last 24 hours (default: top 10 users).
-        `!catchup 5` → Summarizes messages for the top 5 most affected users.
-        `!catchup #channel` → Summarizes recent discussions **in that channel**, grouped by topic.
-        """
+        """Summarizes activity across all channels or within a single specified channel."""
 
         if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
             return
 
-        # Notify the user that the bot is working
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send(
+                f"**Command Executed:** catchup\n**Channel:** {channel.mention if channel else 'All Channels'}\n**Timestamp:** {ctx.message.created_at}"
+            )
+        except discord.Forbidden:
+            await ctx.send("Could not send a DM. Please enable DMs from server members.")
+            return
+
         waiting_message = await ctx.send("Fetching messages... Please wait.")
+        time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
-        time_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=1)
-
-        if channel:  # **Single-Channel Mode**
+        if channel:
             messages = []
             try:
                 async for message in channel.history(after=time_threshold, limit=200):
                     if not message.author.bot:
                         messages.append(message.content)
             except discord.Forbidden:
-                await waiting_message.edit(content=f"I don’t have permission to read {channel.mention}.")
+                await dm_channel.send(f"I don’t have permission to read {channel.mention}.")
                 return
 
             if not messages:
-                await waiting_message.edit(content=f"No recent discussions found in {channel.mention}.")
+                await dm_channel.send(f"No recent discussions found in {channel.mention}.")
                 return
 
-            # Generate a **topic-based summary** for the single channel
             try:
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "Summarize the following Discord messages from a single channel, grouping discussions by topic. "
-                                "Return a simple bulleted list of key topics discussed."
-                            ),
-                        },
+                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, grouping discussions by topic."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
                 summary = response.choices[0].message.content
-
-                await waiting_message.edit(content=f"Here's what's been happening in {channel.mention}:\n{summary}")
+                await dm_channel.send(f"Here's what's been happening in {channel.mention}:")
+                await dm_channel.send(summary)
             except Exception as e:
-                await waiting_message.edit(content=f"Error generating summary: {e}")
-
-        else:  # **All-Channels Mode (default behavior)**
+                await dm_channel.send(f"Error generating summary: {e}")
+        else:
             user_messages = defaultdict(list)
-
             for ch in ctx.guild.text_channels:
                 try:
                     async for message in ch.history(after=time_threshold, limit=100):
@@ -82,52 +74,30 @@ class Catchup(commands.Cog):
                     continue  
 
             if not user_messages:
-                await waiting_message.edit(content="No significant messages in the past 24 hours.")
+                await dm_channel.send("No significant messages in the past 24 hours.")
                 return
 
-            formatted_messages = [
-                f"{user}: " + " || ".join(messages) for user, messages in user_messages.items()
-            ]
-
-            def estimate_tokens(text):
-                return len(text.split()) * 1.3  
-
-            total_tokens = sum(estimate_tokens(msg) for msg in formatted_messages)
-
+            formatted_messages = [f"{user}: " + " || ".join(messages) for user, messages in user_messages.items()]
             token_limit = 12000  
-            while total_tokens > token_limit and len(formatted_messages) > 1:
-                removed_msg = formatted_messages.pop(0)
-                total_tokens -= estimate_tokens(removed_msg)
+            while sum(len(msg.split()) for msg in formatted_messages) > token_limit and len(formatted_messages) > 1:
+                formatted_messages.pop(0)
 
             try:
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "Summarize the following Discord messages from the past 24 hours in a bullet point format, "
-                                "grouping by user. Prioritize users experiencing the most severe life stresses, in this order: "
-                                "1) Medical emergencies, crises, or major loss should always appear first. "
-                                "2) Deep emotional distress, relapses, mental health breakdowns should come next. "
-                                "3) General stressors like work frustration, sleep issues, or minor emotional difficulties should appear last. "
-                                f"Summarize each user’s contributions in up to 5 sentences, and limit the report to the **top {max_users} most affected users**."
-                            ),
-                        },
+                        {"role": "system", "content": "Summarize the following Discord messages in a bullet point format, prioritizing users experiencing the most severe life stresses."},
                         {"role": "user", "content": "\n".join(formatted_messages)}
                     ]
                 )
                 summary = response.choices[0].message.content
-
-                max_length = 2000
-                parts = [summary[i:i + max_length] for i in range(0, len(summary), max_length)]
-
-                await waiting_message.edit(content=parts[0])
-                for part in parts[1:]:
-                    await ctx.send(part)
-
+                await dm_channel.send("Here's a summary of recent discussions:")
+                await dm_channel.send(summary)
             except Exception as e:
-                await waiting_message.edit(content=f"Error generating summary: {e}")
+                await dm_channel.send(f"Error generating summary: {e}")
+        
+        await ctx.message.delete()
+        await waiting_message.delete()
 
 
 async def setup(bot):

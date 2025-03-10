@@ -10,20 +10,23 @@ class CommandsHelp(commands.Cog):
 
     @commands.command(name="commands")
     async def list_commands(self, ctx, command_name: str = None):
-        """Displays a list of available commands, or detailed help for a specific command.
-
-        Usage:
-        `!commands` → Shows a list of available commands in alphabetical order.
-        `!commands <command>` → Shows detailed usage for a specific command.
-        """
+        """Displays a list of available commands, or detailed help for a specific command."""
         if config.is_forbidden_channel(ctx):
             return
 
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send(
+                f"**Command Executed:** commands\n**Channel:** {ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
+            )
+        except discord.Forbidden:
+            await ctx.send("Could not send a DM. Please enable DMs from server members.")
+            return
+
         if command_name:
-            # ✅ Show detailed help for a specific command
             command = self.bot.get_command(command_name)
             if not command:
-                await ctx.send(f"⚠️ No command named `{command_name}` found.")
+                await dm_channel.send(f"⚠️ No command named `{command_name}` found.")
                 return
 
             usage = f"**`!{command.name}`**\n"
@@ -34,18 +37,19 @@ class CommandsHelp(commands.Cog):
             if params:
                 usage += f"**Usage:** `!{command.name} {' '.join(params)}`\n"
 
-            await ctx.send(usage)
+            await dm_channel.send(usage)
+            await ctx.message.delete()
             return
 
-        # ✅ Show general command list (sorted alphabetically)
-        commands_list = sorted(self.bot.commands, key=lambda c: c.name)  # Sort by command name
+        commands_list = sorted(self.bot.commands, key=lambda c: c.name)
         help_text = "**Available Commands (A-Z):**\n"
 
         for command in commands_list:
             if command.help:
                 help_text += f"🔹 **`!{command.name}`** - {command.help.splitlines()[0]}\n"
 
-        await ctx.send(help_text)
+        await dm_channel.send(help_text)
+        await ctx.message.delete()
 
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))

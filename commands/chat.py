@@ -16,14 +16,18 @@ class Chat(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def chat(self, ctx, *, message: str):
-        """Talk to the bot and get AI-generated responses.
-        
-        Usage:
-        `!chat Hello bot!` → Sends "Hello bot!" to the AI and returns a response.
-        """
+        """Talk to the bot and get AI-generated responses."""
 
-        
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+            return
+
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send(
+                f"**Command Executed:** chat\n**Channel:** {ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
+            )
+        except discord.Forbidden:
+            await ctx.send("Could not send a DM. Please enable DMs from server members.")
             return
 
         try:
@@ -32,12 +36,13 @@ class Chat(commands.Cog):
                 messages=[{"role": "user", "content": message}]
             )
 
-            # Extract response correctly
-            reply = response.choices[0].message.content  # Correct way to access content
-
-            await ctx.send(reply)
+            reply = response.choices[0].message.content
+            await dm_channel.send(reply)
         except Exception as e:
-            await ctx.send(f"Error: {e}")
+            await dm_channel.send(f"Error: {e}")
+
+        await ctx.message.delete()
+
 
 async def setup(bot):
     await bot.add_cog(Chat(bot))
