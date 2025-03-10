@@ -16,7 +16,11 @@ class Chat(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def chat(self, ctx, *, message: str):
-        """Talk to the bot and get AI-generated responses."""
+        """Talk to the bot and get AI-generated responses.
+        
+        Usage:
+        `!chat <message>` → Sends `<message>` to the AI bot and receives a response in DM.
+        """
 
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return

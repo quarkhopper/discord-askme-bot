@@ -18,7 +18,12 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def catchup(self, ctx, channel: discord.TextChannel = None, max_users: int = 10):
-        """Summarizes activity across all channels or within a single specified channel."""
+        """Summarizes activity across all channels or within a single specified channel.
+        
+        Usage:
+        `!catchup` → Summarizes recent discussions across all channels, prioritizing the most critical life events.
+        `!catchup #channel` → Summarizes discussions in the specified channel, grouping messages by topic.
+        """
 
         if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
             return
@@ -53,13 +58,12 @@ class Catchup(commands.Cog):
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, grouping discussions by topic."},
+                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, grouping discussions by topic in bullet points."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
                 summary = response.choices[0].message.content
-                await dm_channel.send(f"Here's what's been happening in {channel.mention}:")
-                await dm_channel.send(summary)
+                await dm_channel.send(f"Here's what's been happening in {channel.mention}:\n\n{summary}")
             except Exception as e:
                 await dm_channel.send(f"Error generating summary: {e}")
         else:
@@ -86,7 +90,7 @@ class Catchup(commands.Cog):
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages in a bullet point format, prioritizing users experiencing the most severe life stresses."},
+                        {"role": "system", "content": "Summarize the following Discord messages in a bullet point format, grouping by user. Prioritize users experiencing the most severe life stresses, in this order: \n1) Medical emergencies, crises, or major loss should always appear first. \n2) Deep emotional distress, relapses, mental health breakdowns should come next. \n3) General stressors like work frustration, sleep issues, or minor emotional difficulties should appear last. \nSummarize each user’s contributions in up to 5 sentences, and limit the report to the **top {max_users} most affected users**. Each user’s summary should appear as a single bullet point."},
                         {"role": "user", "content": "\n".join(formatted_messages)}
                     ]
                 )

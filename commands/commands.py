@@ -10,7 +10,12 @@ class CommandsHelp(commands.Cog):
 
     @commands.command(name="commands")
     async def list_commands(self, ctx, command_name: str = None):
-        """Displays a list of available commands, or detailed help for a specific command."""
+        """Displays a list of available commands, or detailed help for a specific command.
+        
+        Usage:
+        `!commands` → Lists all available commands in the bot.
+        `!commands <command_name>` → Provides detailed usage for a specific command.
+        """
         if config.is_forbidden_channel(ctx):
             return
 
