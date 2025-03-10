@@ -38,7 +38,6 @@ class Catchup(commands.Cog):
             await ctx.send("Could not send a DM. Please enable DMs from server members.")
             return
 
-        waiting_message = await ctx.send("Fetching messages... Please wait.")
         time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
         if channel:
@@ -100,8 +99,6 @@ class Catchup(commands.Cog):
                 await dm_channel.send(summary)
             except Exception as e:
                 await dm_channel.send(f"Error generating summary: {e}")
-        
-        await waiting_message.delete()
 
 
 async def setup(bot):
