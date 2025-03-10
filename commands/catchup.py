@@ -68,7 +68,7 @@ class Catchup(commands.Cog):
             removed_msg = formatted_messages.pop(0)  # Remove the oldest user first
             total_tokens -= estimate_tokens(removed_msg)
 
-        # Summarize using OpenAI, prioritizing based on stress level
+        # Summarize using OpenAI, prioritizing based on **trauma/stress severity**
         try:
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -77,9 +77,12 @@ class Catchup(commands.Cog):
                         "role": "system",
                         "content": (
                             "Summarize the following Discord messages from the past 24 hours in a bullet point format, "
-                            "grouping by user. Prioritize users based on the stress level of their life events, placing the most stressful events first. "
-                            "Focus on major life events, expressions of strong emotion, and opportunities for users to support each other. "
-                            f"Summarize each user’s contributions in up to 5 sentences, and limit the report to the top {max_users} most affected users."
+                            "grouping by user. Prioritize users experiencing the most severe life stresses, in this order: "
+                            "1) Medical emergencies, life-threatening crises, or major loss should always appear first. "
+                            "2) Deep emotional distress, relapses, mental health breakdowns, and significant personal hardship should come next. "
+                            "3) General stressors like work frustration, sleep issues, or minor emotional difficulties should appear last. "
+                            "For each user, summarize their contributions in up to 5 sentences, providing enough detail to understand their experiences."
+                            f" Limit the report to the **top {max_users} most affected users**."
                         ),
                     },
                     {"role": "user", "content": "\n".join(formatted_messages)}
