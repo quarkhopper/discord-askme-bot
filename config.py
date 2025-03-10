@@ -1,4 +1,5 @@
 import logging
+import discord
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
