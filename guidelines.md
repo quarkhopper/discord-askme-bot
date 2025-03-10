@@ -1,12 +1,15 @@
 # Discord AskMe Bot - Design Notes & Guidelines
 
 ## 1. Overview
+
 The AskMe bot is a Discord bot designed to facilitate community interactions with a structured command system. It is built using Python and the `discord.py` library, hosted on Railway. This document serves as a reference for ensuring design consistency and efficient synchronization across multiple development environments.
 
 ---
 
 ## 2. Bot Architecture
+
 ### 2.1 File Structure
+
 ```
 discord-askme-bot/
 ├── config.py              # Bot configuration and environment variables
@@ -31,6 +34,7 @@ discord-askme-bot/
 ```
 
 ### 2.2 Main Components
+
 - **`main.py`**: Handles bot initialization, event listening, and command registration.
 - **`config.py`**: Manages environment variables, tokens, and other settings.
 - **`commands/` directory**: Contains individual command implementations, each as a separate module.
@@ -38,6 +42,7 @@ discord-askme-bot/
 - **`bot_errors.py`**: Centralized error handling.
 
 ### 2.3 Bot Initialization Flow
+
 1. Load configuration from `config.py`.
 2. Initialize `discord.ext.commands.Bot`.
 3. Register event listeners and load command cogs.
@@ -46,9 +51,11 @@ discord-askme-bot/
 ---
 
 ## 3. Command Execution Modes
+
 All commands must support **two execution modes**: **DM Mode** and **Server Mode**.
 
 ### 3.1 DM Mode
+
 - Commands execute **without user or channel context**.
 - Commands that normally default to the current channel will use **the bot’s DM history with the user** instead.
 - **Role restrictions do not apply** in DM mode.
@@ -58,6 +65,7 @@ All commands must support **two execution modes**: **DM Mode** and **Server Mode
   - Commands like `!clear`, which allow users to manage **their own DM history**.
 
 ### 3.2 Server Mode
+
 - Commands operate **within a Discord server**, using the **existing rules and restrictions**.
 - **Users must meet the following requirements to use any command in Server Mode:**
   - Be a **member of the same Discord server** as the bot.
@@ -68,10 +76,13 @@ All commands must support **two execution modes**: **DM Mode** and **Server Mode
 ---
 
 ## 4. Command Structure
+
 ### 4.1 Commands as Cogs
+
 Commands are implemented as **Cogs**, which allows modularity and better organization.
 
 Each command file is structured as follows:
+
 ```python
 import discord
 from discord.ext import commands
@@ -90,7 +101,9 @@ class CommandCog(commands.Cog):
         # Send DM with execution details
         try:
             dm_channel = await ctx.author.create_dm()
-            await dm_channel.send(f"**Command Executed:** command_name\n**Channel:** {ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}")
+            await dm_channel.send(f"**Command Executed:** command_name
+**Channel:** {ctx.channel.name}
+**Timestamp:** {ctx.message.created_at}")
             
             # Command-specific logic here
             await dm_channel.send("Response message")
@@ -110,10 +123,11 @@ def setup(bot):
 ```
 
 ### 4.2 Standard Command Guidelines
+
 - **All commands should be defined inside Cogs**.
 - **Use `@commands.command()` to define commands**.
 - **Implement role restrictions where necessary** (see Section 3.2).
-- **Ensure proper parsing of user and channel arguments** (see Section 3.5).
+- **Ensure proper parsing of user and channel arguments** (see Section 5.2).
 - **Include an `error handler` for each command** to ensure smooth user experience.
 - **All command feedback should be sent as a DM to the user**.
 - **A header message should be sent before command execution, including command name, channel, and timestamp**.
@@ -126,6 +140,7 @@ def setup(bot):
 ---
 
 ## 5. Common Development Issues & Fixes
+
 ### 5.1 TypeError: `object Context can't be used in 'await' expression`
 #### Issue:
 Occurs when mistakenly `await`ing a synchronous function like `require_role()`.
@@ -161,3 +176,30 @@ for arg in args:
         channel = resolved_channel
         continue
 ```
+
+### 5.3 Debugging `chat.py` - Membership Verification
+#### Issue:
+The bot incorrectly flagged valid server members as not being in the server.
+#### Fix:
+- Use `await ctx.guild.fetch_member(ctx.author.id)` instead of `ctx.guild.get_member(ctx.author.id)`.
+- Catch `discord.NotFound` separately to avoid misinterpreting other errors.
+- Use a **backup check** with `ctx.guild.get_member(ctx.author.id)`.
+```python
+try:
+    member = await ctx.guild.fetch_member(ctx.author.id)
+    if not member:
+        member = ctx.guild.get_member(ctx.author.id)  # Backup check
+    if not member:
+        await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+        return
+except discord.NotFound:
+    await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+    return
+except Exception as e:
+    await ctx.send("An error occurred while verifying your membership.")
+    return
+```
+This ensures that membership checks are **more reliable** and **prevent false negatives** when validating users.
+
+---
+
