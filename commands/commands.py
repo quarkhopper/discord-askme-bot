@@ -23,8 +23,9 @@ class CommandsHelp(commands.Cog):
 
         try:
             dm_channel = await ctx.author.create_dm()
+            channel_name = ctx.channel.name if isinstance(ctx.channel, discord.TextChannel) else "Direct Message"
             await dm_channel.send(
-                f"**Command Executed:** commands\n**Channel:** {ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
+                f"**Command Executed:** commands\n**Channel:** {channel_name}\n**Timestamp:** {ctx.message.created_at}"
             )
             await ctx.message.delete()  # Delete the original command message
         except discord.Forbidden:
