@@ -21,17 +21,20 @@ class CommandsHelp(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
-        try:
-            dm_channel = await ctx.author.create_dm()
-            channel_name = ctx.channel.name if isinstance(ctx.channel, discord.TextChannel) else "Direct Message"
-            await dm_channel.send(
-                f"**Command Executed:** commands\n**Channel:** {channel_name}\n**Timestamp:** {ctx.message.created_at}"
-            )
-            await ctx.message.delete()  # Delete the original command message
-        except discord.Forbidden:
-            await ctx.send("Could not send a DM. Please enable DMs from server members.")
-            return
-
+        if isinstance(ctx.channel, discord.DMChannel):
+            # If already in a DM, no need to send another DM
+            dm_channel = ctx.channel
+        else:
+            try:
+                dm_channel = await ctx.author.create_dm()
+                await dm_channel.send(
+                    f"**Command Executed:** commands\n**Channel:** {channel_name}\n**Timestamp:** {ctx.message.created_at}"
+                )
+                await ctx.message.delete()
+            except discord.Forbidden:
+                await ctx.send("Could not send a DM. Please enable DMs from server members.")
+                return
+            
         if command_name:
             command = self.bot.get_command(command_name)
             if not command:
