@@ -26,20 +26,37 @@ class Catchup(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
+        # Notify the user that the bot is working
+        waiting_message = await ctx.send("Fetching messages... Please wait.")
+
         time_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        recent_messages = []
+        token_limit = 12000  # Keep a buffer to avoid hitting 16,385 tokens
 
         # Gather messages from the last 24 hours
-        recent_messages = []
         for channel in ctx.guild.text_channels:
             try:
                 async for message in channel.history(after=time_threshold, limit=500):
-                    recent_messages.append(f"{message.author.name}: {message.content}")
+                    msg_text = f"{message.author.name}: {message.content}"
+                    recent_messages.append(msg_text)
             except discord.Forbidden:
                 continue  # Skip channels where the bot lacks permissions
 
         if not recent_messages:
-            await ctx.send("No significant messages in the past 24 hours.")
+            await waiting_message.edit(content="No significant messages in the past 24 hours.")
             return
+
+        # Ensure message length stays within model token limits
+        def estimate_tokens(text):
+            """Rough estimation of token count."""
+            return len(text.split()) * 1.3  # Approx 1.3 tokens per word (varies)
+
+        total_tokens = sum(estimate_tokens(msg) for msg in recent_messages)
+        
+        # Trim messages if they exceed token limit
+        while total_tokens > token_limit and len(recent_messages) > 1:
+            removed_msg = recent_messages.pop(0)  # Remove the oldest message first
+            total_tokens -= estimate_tokens(removed_msg)
 
         # Summarize using OpenAI
         try:
@@ -51,9 +68,9 @@ class Catchup(commands.Cog):
                 ]
             )
             summary = response.choices[0].message.content
-            await ctx.send(f"Here's what happened in the last 24 hours:\n{summary}")
+            await waiting_message.edit(content=f"Here's what happened in the last 24 hours:\n{summary}")
         except Exception as e:
-            await ctx.send(f"Error generating summary: {e}")
+            await waiting_message.edit(content=f"Error generating summary: {e}")
 
 
 async def setup(bot):
