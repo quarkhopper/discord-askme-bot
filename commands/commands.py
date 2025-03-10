@@ -13,7 +13,7 @@ class CommandsHelp(commands.Cog):
         """Displays a list of available commands, or detailed help for a specific command.
 
         Usage:
-        `!commands` → Shows a list of available commands.
+        `!commands` → Shows a list of available commands in alphabetical order.
         `!commands <command>` → Shows detailed usage for a specific command.
         """
         if config.is_forbidden_channel(ctx):
@@ -37,9 +37,11 @@ class CommandsHelp(commands.Cog):
             await ctx.send(usage)
             return
 
-        # ✅ Show general command list (without full usage details)
-        help_text = "**Available Commands:**\n"
-        for command in self.bot.commands:
+        # ✅ Show general command list (sorted alphabetically)
+        commands_list = sorted(self.bot.commands, key=lambda c: c.name)  # Sort by command name
+        help_text = "**Available Commands (A-Z):**\n"
+
+        for command in commands_list:
             if command.help:
                 help_text += f"🔹 **`!{command.name}`** - {command.help.splitlines()[0]}\n"
 
