@@ -86,7 +86,15 @@ class Catchup(commands.Cog):
             )
             summary = response.choices[0].message.content
 
-            await waiting_message.edit(content=f"Here's what happened in the last 24 hours:\n{summary}")
+            # **Split summary into multiple messages if it exceeds 2000 characters**
+            max_length = 2000
+            parts = [summary[i:i + max_length] for i in range(0, len(summary), max_length)]
+
+            # **Send messages in parts**
+            await waiting_message.edit(content=parts[0])  # Edit the waiting message with the first part
+            for part in parts[1:]:
+                await ctx.send(part)  # Send the remaining parts as new messages
+
         except Exception as e:
             await waiting_message.edit(content=f"Error generating summary: {e}")
 
