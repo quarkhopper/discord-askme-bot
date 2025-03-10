@@ -4,6 +4,7 @@ import openai
 import config  # Import shared config
 import os
 import datetime
+import re
 from commands.bot_errors import BotErrors  # Import the error handler
 
 
@@ -17,7 +18,7 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def catchup(self, ctx):
-        """Summarizes activity across all channels over the past 24 hours, highlighting life updates.
+        """Summarizes activity across all channels over the past 24 hours, prioritizing major life events.
         
         Usage:
         `!catchup` → Fetches and summarizes messages from the last 24 hours.
@@ -31,6 +32,7 @@ class Catchup(commands.Cog):
 
         time_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=1)
         recent_messages = []
+        mentioned_users = set()
         token_limit = 12000  # Keep a buffer to avoid hitting 16,385 tokens
 
         # Gather messages from the last 24 hours
@@ -39,6 +41,11 @@ class Catchup(commands.Cog):
                 async for message in channel.history(after=time_threshold, limit=500):
                     msg_text = f"{message.author.name}: {message.content}"
                     recent_messages.append(msg_text)
+
+                    # Track mentioned users
+                    mentions = re.findall(r"@(\w+)", message.content)
+                    mentioned_users.update(mentions)
+
             except discord.Forbidden:
                 continue  # Skip channels where the bot lacks permissions
 
@@ -67,15 +74,23 @@ class Catchup(commands.Cog):
                         "role": "system",
                         "content": (
                             "Summarize the following Discord messages from the past 24 hours. "
-                            "Highlight any significant personal or life updates shared by users, "
-                            "including the username of who shared them and a brief summary of what they said. "
-                            "Also provide a general summary of the overall conversation trends."
+                            "Prioritize major life events and crises such as medical emergencies, relapses, "
+                            "job loss, and significant stress. "
+                            "List these separately, including who shared them and a short summary of what happened. "
+                            "Also, provide a general summary of discussions. "
+                            "Finally, provide a list of users who were mentioned in messages, to help ensure "
+                            "the community knows who was talked about and may need support."
                         ),
                     },
                     {"role": "user", "content": "\n".join(recent_messages)}
                 ]
             )
             summary = response.choices[0].message.content
+
+            # Add mentioned users to the summary
+            if mentioned_users:
+                summary += "\n\n**Users Mentioned:**\n" + "\n".join(f"- {user}" for user in mentioned_users)
+
             await waiting_message.edit(content=f"Here's what happened in the last 24 hours:\n{summary}")
         except Exception as e:
             await waiting_message.edit(content=f"Error generating summary: {e}")
