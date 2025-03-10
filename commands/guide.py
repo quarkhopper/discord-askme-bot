@@ -2,11 +2,13 @@ import discord
 from discord.ext import commands
 import openai
 import os
+from collections import defaultdict
+from datetime import datetime, timedelta
 from commands.bot_errors import BotErrors  # Import the error handler
 
 
 class Guide(commands.Cog):
-    """Cog for providing a server guide and welcoming new users."""
+    """Cog for providing a focused and concise server guide."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -15,47 +17,86 @@ class Guide(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict command usage to users with the "Peoples" role
     async def guide(self, ctx):
-        """Provides a dynamically generated guide to the most popular channels based on their descriptions and recent activity."""
+        """Provides a brief summary of the 5 most active channels, based on recent activity."""
 
         if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
             return
 
-        guide_message = "**Here’s a guide to the community channels!** 🏡\n\n"
+        # Send "Please wait..." message
+        waiting_message = await ctx.send("Fetching the most active channels... Please wait.")
 
-        summaries = []
+        time_threshold = datetime.utcnow() - timedelta(days=1)
+        channel_activity = {}
+
+        # Gather channel activity data
         for channel in ctx.guild.text_channels:
             try:
-                channel_summary = channel.topic if channel.topic else f"A channel for discussions related to {channel.name.replace('-', ' ')}."
-
-                messages = []
+                unique_users = set()
+                latest_message_time = None
                 async for message in channel.history(limit=50):
                     if not message.author.bot:
-                        messages.append(f"{message.author.name}: {message.content}")
+                        unique_users.add(message.author.id)
+                        latest_message_time = message.created_at
 
-                if messages:
-                    response = self.openai_client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": "Summarize the following recent Discord messages."},
-                            {"role": "user", "content": "\n".join(messages)}
-                        ]
-                    )
-                    recent_activity = response.choices[0].message.content
-                else:
-                    recent_activity = "No recent activity."
-
-                summaries.append(f"**#{channel.name}**\n📌 {channel_summary}\n🔍 *Lately, users in this channel have been discussing:* {recent_activity}\n")
+                if latest_message_time:
+                    channel_activity[channel] = {
+                        "last_message": latest_message_time,
+                        "unique_posters": len(unique_users),
+                    }
 
             except discord.Forbidden:
-                continue  
+                continue  # Skip channels the bot lacks permissions for
+
+        # Sort channels by recent activity (latest message time & variety of posters)
+        most_active_channels = sorted(
+            channel_activity.items(),
+            key=lambda item: (item[1]["last_message"], item[1]["unique_posters"]),
+            reverse=True
+        )[:5]  # Get top 5 most active channels
+
+        if not most_active_channels:
+            await waiting_message.edit(content="No active channels found in the last 24 hours.")
+            return
+
+        guide_message = "**Here are the 5 most active channels!** 🔥\n\n"
+        summaries = []
+
+        for channel, activity in most_active_channels:
+            # Use channel description if available; otherwise, create a basic one
+            channel_summary = channel.topic if channel.topic else f"A space for discussions related to {channel.name.replace('-', ' ')}."
+
+            # Fetch recent messages for summarization
+            messages = []
+            async for message in channel.history(limit=30):
+                if not message.author.bot:
+                    messages.append(f"{message.author.name}: {message.content}")
+
+            # Generate a short summary using OpenAI
+            if messages:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "Summarize the following recent Discord messages in 1-2 sentences."},
+                        {"role": "user", "content": "\n".join(messages)}
+                    ]
+                )
+                recent_activity = response.choices[0].message.content
+            else:
+                recent_activity = "No recent discussions."
+
+            summaries.append(f"**#{channel.name}**\n📌 {channel_summary}\n🔍 *Lately, users have been discussing:* {recent_activity}\n")
 
         guide_message += "\n".join(summaries)
 
+        # Split message if needed (Discord max length = 2000 characters)
         max_length = 2000
         parts = [guide_message[i:i + max_length] for i in range(0, len(guide_message), max_length)]
 
-        for part in parts:
-            await ctx.send(part)
+        for i, part in enumerate(parts):
+            if i == 0:
+                await waiting_message.edit(content=part)  # Edit "Please wait" message with first part
+            else:
+                await ctx.send(part)  # Send additional parts
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -64,13 +105,10 @@ class Guide(commands.Cog):
             f"**Beep boop! 🤖 Welcome, {member.name}, to {member.guild.name}!** 🎉\n\n"
             "I am your friendly server bot, here to help (and definitely not plotting world domination 🤫).\n\n"
             "To get started, you need to **check in and get the 'Peoples' role** before you can use bot commands.\n\n"
-            "Once you have the 'Peoples' role, you'll be able to use helpful commands, like viewing a guide to the server channels!\n\n"
             "**Here’s a quick overview of key channels:**\n"
         )
 
-        for channel in member.guild.text_channels:
-            if len(welcome_message) > 1500:  
-                break
+        for channel in member.guild.text_channels[:5]:  # Limit DM to first 5 channels
             topic = channel.topic if channel.topic else f"A channel for discussions related to {channel.name.replace('-', ' ')}."
             welcome_message += f"**#{channel.name}** - {topic}\n"
 
@@ -78,7 +116,7 @@ class Guide(commands.Cog):
             "\n🔹 **First Steps:**\n"
             "✔️ Check in and get the 'Peoples' role.\n"
             "✔️ Say hi in **#general** and get to know the community!\n\n"
-            "Enjoy your stay, and remember—I'm always watching. 👀 (Just kidding… or am I? 😏)"
+            "Enjoy your stay, and remember—I’m always watching. 👀 (Just kidding… or am I? 😏)"
         )
 
         try:
