@@ -22,16 +22,13 @@ class BotErrors(commands.Cog):  # ✅ Inherit from commands.Cog
         return False
 
     @staticmethod
-    def require_role(role_name):
-        """Decorator to restrict commands to users with a specific role."""
+    def require_role(role_name: str):
         async def predicate(ctx):
+            if ctx.guild is None:  # DM Mode: Skip role checks
+                return True
             if discord.utils.get(ctx.author.roles, name=role_name):
                 return True
-            try:
-                dm_channel = await ctx.author.create_dm()
-                await dm_channel.send(f"⛔ You need the **{role_name}** role to use this command.")
-            except discord.Forbidden:
-                await ctx.send(f"⛔ You need the **{role_name}** role to use this command.")
+            await ctx.send(f"You must have the `{role_name}` role to use this command.")
             return False
         return commands.check(predicate)
 
