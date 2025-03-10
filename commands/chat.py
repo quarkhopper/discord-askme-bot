@@ -23,15 +23,25 @@ class Chat(commands.Cog):
         - **DM Mode**: The bot will respond in a private message. No role restrictions apply.
         - **Server Mode**: Requires the "Vetted" role. The bot will send results via DM and ensure the user is in the same server.
         """
-
         is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        # Debug log
+        print(f"[DEBUG] chat command called. DM Mode: {is_dm}")
 
         # Server mode: enforce role restriction and check server membership
         if not is_dm:
             if not BotErrors.require_role("Vetted")(ctx):
+                print("[DEBUG] User lacks 'Vetted' role. Exiting command.")
                 return
-            if ctx.guild is None or not any(m.id == ctx.author.id for m in ctx.guild.members):
-                await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+            try:
+                member = await ctx.guild.fetch_member(ctx.author.id)
+                if not member:
+                    print("[DEBUG] User is not found in the server members list.")
+                    await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+                    return
+            except Exception as e:
+                print(f"[DEBUG] Error fetching member list: {e}")
+                await ctx.send("An error occurred while verifying your membership.")
                 return
 
         try:
