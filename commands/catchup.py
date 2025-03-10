@@ -3,11 +3,12 @@ from discord.ext import commands
 import openai
 import config  # Import shared config
 import os
+import datetime
 from commands.bot_errors import BotErrors  # Import the error handler
 
 
 class Catchup(commands.Cog):
-    """Cog for summarizing recent events since the user's last message."""
+    """Cog for summarizing the last 24 hours of messages across all channels."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -16,58 +17,28 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def catchup(self, ctx):
-        """Summarizes activity across all channels since the user's last message.
+        """Summarizes activity across all channels over the past 24 hours.
         
         Usage:
-        `!catchup` → Fetches messages since the last time the user posted.
+        `!catchup` → Fetches and summarizes messages from the last 24 hours.
         """
 
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
             return
 
-        user_id = ctx.author.id
-        bot_id = self.bot.user.id
-        last_message_time = None
+        time_threshold = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 
-        # Find the user's last message in any channel
-        for channel in ctx.guild.text_channels:
-            try:
-                async for message in channel.history(limit=100):  # Fetch last 100 messages per channel
-                    if message.author.id == user_id:
-                        last_message_time = message.created_at
-                        break
-                if last_message_time:
-                    break
-            except discord.Forbidden:
-                continue  # Skip channels where the bot lacks permissions
-
-        if not last_message_time:
-            await ctx.send("I couldn't find any of your past messages.")
-            return
-
-        # Gather messages since the last user's message
+        # Gather messages from the last 24 hours
         recent_messages = []
         for channel in ctx.guild.text_channels:
             try:
-                async for message in channel.history(after=last_message_time, limit=100):
-                    if message.author.id == user_id:  
-                        continue  # Ignore user's own messages
-                    
-                    if message.author.id == bot_id:  
-                        continue  # Ignore bot's own messages
-                    
-                    if self.bot.user.mentioned_in(message):  
-                        continue  # Ignore messages mentioning the bot
-                    
-                    if message.content.startswith(ctx.prefix):  
-                        continue  # Ignore command messages
-
+                async for message in channel.history(after=time_threshold, limit=500):
                     recent_messages.append(f"{message.author.name}: {message.content}")
             except discord.Forbidden:
                 continue  # Skip channels where the bot lacks permissions
 
         if not recent_messages:
-            await ctx.send("No new messages since your last post.")
+            await ctx.send("No significant messages in the past 24 hours.")
             return
 
         # Summarize using OpenAI
@@ -75,12 +46,12 @@ class Catchup(commands.Cog):
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "Summarize the following Discord messages."},
+                    {"role": "system", "content": "Summarize the following Discord messages from the past 24 hours."},
                     {"role": "user", "content": "\n".join(recent_messages)}
                 ]
             )
             summary = response.choices[0].message.content
-            await ctx.send(f"Here's what you missed:\n{summary}")
+            await ctx.send(f"Here's what happened in the last 24 hours:\n{summary}")
         except Exception as e:
             await ctx.send(f"Error generating summary: {e}")
 
