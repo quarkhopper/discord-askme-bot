@@ -36,9 +36,15 @@ class Chat(commands.Cog):
             try:
                 member = await ctx.guild.fetch_member(ctx.author.id)
                 if not member:
+                    member = ctx.guild.get_member(ctx.author.id)  # Backup check
+                if not member:
                     print("[DEBUG] User is not found in the server members list.")
                     await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
                     return
+            except discord.NotFound:
+                print("[DEBUG] Member not found via fetch_member(). Possible issue with intents.")
+                await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+                return
             except Exception as e:
                 print(f"[DEBUG] Error fetching member list: {e}")
                 await ctx.send("An error occurred while verifying your membership.")
