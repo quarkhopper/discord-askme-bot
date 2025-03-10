@@ -77,7 +77,7 @@ class Catchup(commands.Cog):
                     async for message in ch.history(after=time_threshold, limit=100):
                         if message.author.bot:
                             continue  
-                        user_messages[message.author.mention].append(message.content)
+                        user_messages[message.author.nick].append(message.content)
                 except discord.Forbidden:
                     continue  
 
