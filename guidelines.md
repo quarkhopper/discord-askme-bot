@@ -125,3 +125,39 @@ def setup(bot):
 
 ---
 
+## 5. Common Development Issues & Fixes
+### 5.1 TypeError: `object Context can't be used in 'await' expression`
+#### Issue:
+Occurs when mistakenly `await`ing a synchronous function like `require_role()`.
+#### Fix:
+Remove `await` from the function call:
+```python
+if not BotErrors.require_role("Vetted")(ctx):  # Correct usage
+    return
+```
+Instead of:
+```python
+if not await BotErrors.require_role("Vetted")(ctx):  # Incorrect usage
+    return
+```
+
+### 5.2 Correctly Parsing Optional User and Channel Arguments
+#### Issue:
+Parsing an optional username and channel name from command arguments can be tricky, leading to incorrect resolutions.
+#### Fix:
+Use the pattern from `mood.py`, which:
+- Iterates through `args`, attempting to resolve each as either a **user** or a **channel**.
+- Prioritizes matching users first, then channels.
+- Defaults to the **current channel** if no channel argument is provided.
+```python
+for arg in args:
+    resolved_user = await self.resolve_member(ctx, arg)
+    if resolved_user:
+        user = resolved_user
+        continue
+    
+    resolved_channel = await self.resolve_channel(ctx, arg)
+    if resolved_channel:
+        channel = resolved_channel
+        continue
+```

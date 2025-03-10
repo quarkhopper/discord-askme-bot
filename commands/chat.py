@@ -21,16 +21,16 @@ class Chat(commands.Cog):
         `!chat <message>` → Sends `<message>` to the AI bot and receives a response.
         
         - **DM Mode**: The bot will respond in a private message. No role restrictions apply.
-        - **Server Mode**: Requires the "Vetted" role. The bot will send results via DM.
+        - **Server Mode**: Requires the "Vetted" role. The bot will send results via DM and ensure the user is in the same server.
         """
 
         is_dm = isinstance(ctx.channel, discord.DMChannel)
 
-        # Server mode: enforce role restriction
+        # Server mode: enforce role restriction and check server membership
         if not is_dm:
             if not BotErrors.require_role("Vetted")(ctx):
                 return
-            if ctx.guild is None or ctx.guild.get_member(ctx.author.id) is None:
+            if ctx.guild is None or not any(m.id == ctx.author.id for m in ctx.guild.members):
                 await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
                 return
 
