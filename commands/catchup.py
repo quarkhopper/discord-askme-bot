@@ -16,7 +16,7 @@ class Catchup(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
+    @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def catchup(self, ctx, channel: discord.TextChannel = None, max_users: int = 10):
         """Summarizes activity across all channels or within a single specified channel.
         
@@ -33,6 +33,7 @@ class Catchup(commands.Cog):
             await dm_channel.send(
                 f"**Command Executed:** catchup\n**Channel:** {channel.mention if channel else 'All Channels'}\n**Timestamp:** {ctx.message.created_at}"
             )
+            await ctx.message.delete()  # Delete command message after DM is sent
         except discord.Forbidden:
             await ctx.send("Could not send a DM. Please enable DMs from server members.")
             return
@@ -100,7 +101,6 @@ class Catchup(commands.Cog):
             except Exception as e:
                 await dm_channel.send(f"Error generating summary: {e}")
         
-        await ctx.message.delete()
         await waiting_message.delete()
 
 
