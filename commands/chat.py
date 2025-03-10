@@ -28,7 +28,7 @@ class Chat(commands.Cog):
 
         # Server mode: enforce role restriction
         if not is_dm:
-            if not await BotErrors.require_role("Vetted")(ctx):
+            if not BotErrors.require_role("Vetted")(ctx):
                 return
             if ctx.guild is None or ctx.guild.get_member(ctx.author.id) is None:
                 await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
