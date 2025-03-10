@@ -14,24 +14,34 @@ class Chat(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
         
         Usage:
-        `!chat <message>` → Sends `<message>` to the AI bot and receives a response in DM.
+        `!chat <message>` → Sends `<message>` to the AI bot and receives a response.
+        
+        - **DM Mode**: The bot will respond in a private message. No role restrictions apply.
+        - **Server Mode**: Requires the "Vetted" role. The bot will send results via DM.
         """
 
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
-            return
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        # Server mode: enforce role restriction
+        if not is_dm:
+            if not await BotErrors.require_role("Vetted")(ctx):
+                return
+            if ctx.guild is None or ctx.guild.get_member(ctx.author.id) is None:
+                await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
+                return
 
         try:
             dm_channel = await ctx.author.create_dm()
             await dm_channel.send(
-                f"**Command Executed:** chat\n**Channel:** {ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
+                f"**Command Executed:** chat\n**Channel:** {'Direct Message' if is_dm else ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
             )
         except discord.Forbidden:
-            await ctx.send("Could not send a DM. Please enable DMs from server members.")
+            if not is_dm:
+                await ctx.send("Could not send a DM. Please enable DMs from server members.")
             return
 
         try:
@@ -45,7 +55,8 @@ class Chat(commands.Cog):
         except Exception as e:
             await dm_channel.send(f"Error: {e}")
 
-        await ctx.message.delete()
+        if not is_dm:
+            await ctx.message.delete()
 
 
 async def setup(bot):
