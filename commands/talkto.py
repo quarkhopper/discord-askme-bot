@@ -109,6 +109,8 @@ class TalkSimulator(commands.Cog):
             {vocabulary_hint}
             You are allowed to use metaphors, but they must be relevant to the user’s way of speaking.
 
+            Do NOT use emojis in the response. Stick to text only.
+            
             Now, generate a response in their style to this comment: "{prompt}"
             """
 
