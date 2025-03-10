@@ -17,11 +17,12 @@ class Catchup(commands.Cog):
 
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
-    async def catchup(self, ctx):
-        """Summarizes user activity over the past 24 hours, emphasizing major life events, emotions, and support opportunities.
+    async def catchup(self, ctx, max_users: int = 10):
+        """Summarizes user activity over the past 24 hours, prioritizing the most stressful life events.
         
         Usage:
-        `!catchup` → Fetches and summarizes messages from the last 24 hours.
+        `!catchup` → Fetches and summarizes messages from the last 24 hours (default: top 10 users).
+        `!catchup 5` → Summarizes messages for the top 5 most affected users.
         """
 
         if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
@@ -67,7 +68,7 @@ class Catchup(commands.Cog):
             removed_msg = formatted_messages.pop(0)  # Remove the oldest user first
             total_tokens -= estimate_tokens(removed_msg)
 
-        # Summarize using OpenAI
+        # Summarize using OpenAI, prioritizing based on stress level
         try:
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -76,9 +77,9 @@ class Catchup(commands.Cog):
                         "role": "system",
                         "content": (
                             "Summarize the following Discord messages from the past 24 hours in a bullet point format, "
-                            "grouping by user. Exclude trivial conversations and focus on major life events, expressions of strong emotion, "
-                            "and opportunities for users to support each other. For each user, summarize their contributions in up to 5 sentences, "
-                            "providing enough detail to understand their key experiences and struggles."
+                            "grouping by user. Prioritize users based on the stress level of their life events, placing the most stressful events first. "
+                            "Focus on major life events, expressions of strong emotion, and opportunities for users to support each other. "
+                            f"Summarize each user’s contributions in up to 5 sentences, and limit the report to the top {max_users} most affected users."
                         ),
                     },
                     {"role": "user", "content": "\n".join(formatted_messages)}
