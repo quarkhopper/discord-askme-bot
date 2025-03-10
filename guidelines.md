@@ -201,5 +201,31 @@ except Exception as e:
 ```
 This ensures that membership checks are **more reliable** and **prevent false negatives** when validating users.
 
+### **5.4 Preventing Unnecessary DM Sends in DM Mode**
+#### **Issue:**
+Some commands attempt to send a DM even when they are already executed inside a DM, causing redundant errors like:
+```
+Could not send a DM. Please enable DMs from server members.
+```
+
+#### **Fix:**
+Commands should check if they are already in a **DM channel** before attempting to send a DM. The correct pattern is:
+```python
+if isinstance(ctx.channel, discord.DMChannel):
+    dm_channel = ctx.channel  # Already in a DM, no need to create a new one
+else:
+    try:
+        dm_channel = await ctx.author.create_dm()
+        await dm_channel.send("Command Executed: ...")
+        await ctx.message.delete()
+    except discord.Forbidden:
+        await ctx.send("Could not send a DM. Please enable DMs from server members.")
+        return
+```
+#### **Why This Works**
+✅ Prevents unnecessary DM attempts when already in a DM  
+✅ Ensures commands still send execution feedback in **Server Mode**  
+✅ Avoids redundant error messages  
+
 ---
 

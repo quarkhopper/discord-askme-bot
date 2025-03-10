@@ -21,10 +21,12 @@ class CommandsHelp(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
+        # Ensure channel_name is defined before using it
         if isinstance(ctx.channel, discord.DMChannel):
-            # If already in a DM, no need to send another DM
-            dm_channel = ctx.channel
+            dm_channel = ctx.channel  # Already in a DM, use the existing DM channel
+            channel_name = "Direct Message"
         else:
+            channel_name = ctx.channel.name  # Set channel name for server mode
             try:
                 dm_channel = await ctx.author.create_dm()
                 await dm_channel.send(
