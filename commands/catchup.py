@@ -17,7 +17,7 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def catchup(self, ctx):
-        """Summarizes activity across all channels over the past 24 hours.
+        """Summarizes activity across all channels over the past 24 hours, highlighting life updates.
         
         Usage:
         `!catchup` → Fetches and summarizes messages from the last 24 hours.
@@ -63,7 +63,15 @@ class Catchup(commands.Cog):
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "Summarize the following Discord messages from the past 24 hours."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "Summarize the following Discord messages from the past 24 hours. "
+                            "Highlight any significant personal or life updates shared by users, "
+                            "including the username of who shared them and a brief summary of what they said. "
+                            "Also provide a general summary of the overall conversation trends."
+                        ),
+                    },
                     {"role": "user", "content": "\n".join(recent_messages)}
                 ]
             )
