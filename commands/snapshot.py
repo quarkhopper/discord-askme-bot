@@ -6,7 +6,7 @@ from commands.bot_errors import BotErrors  # Import the error handler
 
 
 class Snapshot(commands.Cog):
-    """Cog for generating an AI image prompt from recent channel messages."""
+    """Cog for generating an AI image based on recent channel messages."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -15,7 +15,7 @@ class Snapshot(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Peoples")  # Restrict command usage to users with the "Peoples" role
     async def snapshot(self, ctx, channel: discord.TextChannel = None):
-        """Generates an AI image prompt based on the last 10 messages in a channel.
+        """Generates an AI image based on the last 10 messages in a channel.
 
         Usage:
         `!snapshot` → Uses the current channel's last 10 messages.
@@ -62,11 +62,19 @@ class Snapshot(commands.Cog):
             )
             image_prompt = response.choices[0].message.content
 
-            # Send the generated prompt
-            await waiting_message.edit(content=f"🎨 **Here's your AI-generated image prompt:**\n*{image_prompt}*")
+            # Send the generated image prompt to DALL·E
+            dalle_response = self.openai_client.images.generate(
+                prompt=image_prompt,
+                n=1,
+                size="1024x1024"
+            )
+
+            image_url = dalle_response.data[0].url  
+
+            await waiting_message.edit(content=f"🎨 **Here's an AI-generated image based on {channel.mention}:**\n*{image_prompt}*\n{image_url}")
 
         except Exception as e:
-            await waiting_message.edit(content=f"Error generating image prompt: {e}")
+            await waiting_message.edit(content=f"Error generating image: {e}")
 
 
 async def setup(bot):
