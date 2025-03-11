@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import openai
 import os
-from collections import defaultdict
 from datetime import datetime, timedelta
 from commands.bot_errors import BotErrors  # Import the error handler
 
@@ -15,12 +14,17 @@ class Guide(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict command usage to users with the "Peoples" role
     async def guide(self, ctx):
         """Provides a brief summary of the 5 most active channels, based on recent activity."""
+        
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
 
-        if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
-            return
+        # In Server Mode, enforce role restrictions and forbidden channel checks
+        if not is_dm:
+            if not BotErrors.require_role("Vetted")(ctx):  # ✅ FIXED: Correct role check without `await`
+                return
+            if await BotErrors.check_forbidden_channel(ctx):
+                return
 
         # Send "Please wait..." message
         waiting_message = await ctx.send("Fetching the most active channels... Please wait.")
@@ -47,7 +51,7 @@ class Guide(commands.Cog):
             except discord.Forbidden:
                 continue  # Skip channels the bot lacks permissions for
 
-        # Sort channels by recent activity (latest message time & variety of posters)
+        # Sort channels by recent activity
         most_active_channels = sorted(
             channel_activity.items(),
             key=lambda item: (item[1]["last_message"], item[1]["unique_posters"]),
@@ -62,7 +66,6 @@ class Guide(commands.Cog):
         summaries = []
 
         for channel, activity in most_active_channels:
-            # Use channel description if available; otherwise, create a basic one
             channel_summary = channel.topic if channel.topic else f"A space for discussions related to {channel.name.replace('-', ' ')}."
 
             # Fetch recent messages for summarization
@@ -71,7 +74,6 @@ class Guide(commands.Cog):
                 if not message.author.bot:
                     messages.append(f"{message.author.name}: {message.content}")
 
-            # Generate a short summary using OpenAI
             if messages:
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
@@ -88,15 +90,33 @@ class Guide(commands.Cog):
 
         guide_message += "\n".join(summaries)
 
-        # Split message if needed (Discord max length = 2000 characters)
+        # Standard Execution Header
+        header = (
+            f"📌 **Command Executed:** `!guide`\n"
+            f"📍 **Channel:** {ctx.channel.name if not is_dm else 'Direct Message'}\n"
+            f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
+        )
+
+        # Send response (split if needed)
         max_length = 2000
         parts = [guide_message[i:i + max_length] for i in range(0, len(guide_message), max_length)]
 
-        for i, part in enumerate(parts):
-            if i == 0:
-                await waiting_message.edit(content=part)  # Edit "Please wait" message with first part
+        try:
+            if is_dm:
+                await ctx.send(header + parts[0])
             else:
-                await ctx.send(part)  # Send additional parts
+                dm_channel = await ctx.author.create_dm()
+                await dm_channel.send(header + parts[0])
+                await ctx.message.delete()
+
+                for part in parts[1:]:
+                    await dm_channel.send(part)
+
+            await waiting_message.delete()
+        except discord.Forbidden:
+            await waiting_message.edit(content="⚠️ Could not send a DM. Please enable DMs from server members.")
+            for i, part in enumerate(parts):
+                await ctx.send(part if i == 0 else part)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -104,7 +124,7 @@ class Guide(commands.Cog):
         welcome_message = (
             f"**Beep boop! 🤖 Welcome, {member.name}, to {member.guild.name}!** 🎉\n\n"
             "I am your friendly server bot, here to help (and definitely not plotting world domination 🤫).\n\n"
-            "To get started, you need to **check in and get the 'Peoples' role** before you can use bot commands.\n\n"
+            "To get started, you need to **check in and get the 'Vetted' role** before you can use bot commands.\n\n"
             "**Here’s a quick overview of key channels:**\n"
         )
 
@@ -114,7 +134,7 @@ class Guide(commands.Cog):
 
         welcome_message += (
             "\n🔹 **First Steps:**\n"
-            "✔️ Check in and get the 'Peoples' role.\n"
+            "✔️ Check in and get the 'Vetted' role.\n"
             "✔️ Say hi in **#general** and get to know the community!\n\n"
             "Enjoy your stay, and remember—I’m always watching. 👀 (Just kidding… or am I? 😏)"
         )
