@@ -15,24 +15,32 @@ class Snapshot(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     async def generate_prompt(self, messages):
-        """Runs OpenAI text completion in a background thread with truncation."""
-        full_prompt = "\n".join(messages)
+        """Runs OpenAI text completion in a background thread with strict truncation."""
+        system_prompt = (
+            "Create a vivid, creative, and visually interesting image prompt "
+            "based on the following Discord messages. The prompt should describe an artistic scene "
+            "that represents the conversation topics and themes in a unique and engaging way."
+        )
 
-        # ✅ Ensure prompt does not exceed 1000 characters
-        if len(full_prompt) > 1000:
-            full_prompt = full_prompt[:997] + "..."  # Truncate and add ellipsis
+        # ✅ Ensure total message length (including system prompt) stays ≤ 1000 chars
+        max_length = 1000 - len(system_prompt) - 50  # Extra buffer for safety
+        truncated_messages = []
+        current_length = 0
+
+        for msg in messages:
+            if current_length + len(msg) > max_length:
+                break
+            truncated_messages.append(msg)
+            current_length += len(msg)
+
+        final_prompt = "\n".join(truncated_messages)
 
         return await asyncio.to_thread(
             self.openai_client.chat.completions.create,
             model="gpt-3.5-turbo",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Create a vivid, creative, and visually interesting image prompt "
-                               "based on the following Discord messages. The prompt should describe an artistic scene "
-                               "that represents the conversation topics and themes in a unique and engaging way."
-                },
-                {"role": "user", "content": full_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": final_prompt}
             ]
         )
 
