@@ -31,7 +31,10 @@ class PlanHour(commands.Cog):
         return None
 
     async def resolve_member(self, ctx, identifier):
-        """Tries to resolve a user by mention, name, or ID (Copied from mood.py)."""
+        """Tries to resolve a user by mention, name, or ID."""
+        if ctx.guild is None:
+            return None  # Prevents lookup in DMs, since there's no guild
+
         member = None
         user_id = self.extract_id(identifier)
 
@@ -49,6 +52,9 @@ class PlanHour(commands.Cog):
 
     async def resolve_channel(self, ctx, identifier):
         """Tries to resolve a channel by mention, name, or ID."""
+        if ctx.guild is None:
+            return None  # Prevents lookup in DMs, since there's no guild
+
         channel = None
         channel_id = self.extract_id(identifier)
 
@@ -65,17 +71,31 @@ class PlanHour(commands.Cog):
         return channel
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
+    @BotErrors.require_role("Vetted")  # ✅ Updated to follow the latest spec
     async def planhour(self, ctx, *args):
         """Generates a mildly absurd but plausible plan for the next hour based on recent messages.
 
-        Usage:
+        **Usage:**
         `!planhour` → Generates a plan based on **your** recent messages in the current channel.
         `!planhour @User` → Generates a plan based on **@User's** messages in the current channel.
         `!planhour #general` → Generates a plan based on recent messages in **#general**.
         `!planhour @User #general` → Generates a plan for **@User's** messages in **#general**.
+
+        **Restrictions:**
+        - ❌ **This command cannot be used in DMs.**
+        - ✅ **Requires the "Vetted" role to execute.**
         """
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+
+        # ❌ Block DM mode but ensure the user gets feedback
+        if isinstance(ctx.channel, discord.DMChannel):
+            try:
+                await ctx.send("❌ The `!planhour` command can only be used in a server.")
+            except discord.Forbidden:
+                pass  # If DMs are disabled, fail silently
+            return
+
+        # Check if command is in a forbidden channel
+        if await BotErrors.check_forbidden_channel(ctx):
             return
 
         user = ctx.author  # Default to executing user
