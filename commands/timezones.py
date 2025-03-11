@@ -15,15 +15,12 @@ class Timezones(commands.Cog):
     async def not_in_dm(ctx):
         """Prevents the command from running in DMs."""
         if isinstance(ctx.channel, discord.DMChannel):
-            try:
-                await ctx.send("❌ The `!timezones` command can only be used in a server.")
-            except discord.Forbidden:
-                pass  # Fail silently if DMs are disabled
-            return False  # Prevents command execution
+            await ctx.send("❌ The `!timezones` command can only be used in a server.")
+            return False  # ✅ Prevents command execution
         return True
 
     @commands.command()
-    @commands.check(not_in_dm)  # ✅ Prevent execution in DMs
+    @commands.check(not_in_dm)  # ✅ Ensure correct reference to static method
     @BotErrors.require_role("Vetted")  # ✅ Requires "Vetted" role
     async def timezones(self, ctx):
         """Displays the local time for each distinct time zone in the server.
@@ -52,12 +49,14 @@ class Timezones(commands.Cog):
 
         # Iterate through server members to collect time zones
         for member in ctx.guild.members:
-            if member.bot or not member.tzinfo:
-                continue  # Skip bots and users without a set time zone
+            if member.bot:
+                continue  # Skip bots
 
-            tz_name = member.tzinfo.zone
-            if tz_name not in timezones:
-                timezones[tz_name] = datetime.now(pytz.timezone(tz_name)).strftime("%Y-%m-%d %I:%M %p")
+            # Assuming users' time zones are stored in a custom attribute
+            tz_name = getattr(member, "timezone", None)
+            if tz_name and tz_name in pytz.all_timezones:
+                if tz_name not in timezones:
+                    timezones[tz_name] = datetime.now(pytz.timezone(tz_name)).strftime("%Y-%m-%d %I:%M %p")
 
         if not timezones:
             try:
