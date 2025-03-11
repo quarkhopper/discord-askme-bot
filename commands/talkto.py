@@ -42,18 +42,6 @@ class TalkSimulator(commands.Cog):
 
         return messages
 
-    def extract_topics_and_vocab(self, messages):
-        """Extracts commonly used words from user messages without nltk."""
-        text = " ".join(messages).lower()
-        words = re.findall(r'\b\w{4,}\b', text)  # Extract words with 4+ letters
-        common_words = Counter(words).most_common(100)
-
-        # Use words that appear at least twice as topics
-        topics = {word for word, count in common_words if count > 1}
-        vocabulary = {word for word, count in common_words}
-
-        return topics, vocabulary
-
     async def resolve_member(self, ctx, identifier):
         """Resolves a user by mention, name, or ID."""
         match = re.match(r"<@!?(\d+)>", identifier)
@@ -63,7 +51,7 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
-    @BotErrors.require_role("Vetted")  # ✅ Updated role requirement
+    @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
         """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
 
@@ -78,10 +66,7 @@ class TalkSimulator(commands.Cog):
 
         # ❌ Block DM mode but ensure the user gets feedback
         if isinstance(ctx.channel, discord.DMChannel):
-            try:
-                await ctx.send("❌ The `!talkto` command can only be used in a server.")
-            except discord.Forbidden:
-                pass  # If DMs are disabled, fail silently
+            await ctx.send("❌ The `!talkto` command can only be used in a server.")
             return
 
         # ✅ Immediately delete the command message to avoid clutter
@@ -113,17 +98,11 @@ class TalkSimulator(commands.Cog):
                     await ctx.send(f"⚠️ No messages found for {user.display_name}.")
                 return
 
-            topics, vocabulary = self.extract_topics_and_vocab(past_messages)
+            topics = {word for word in past_messages if len(word) > 4}
+            vocabulary = {word for word in past_messages}
 
-            # Encourage AI to stick to these subjects, but allow flexibility
-            relevant_prompt = (
-                f"Prioritize responding in a way related to these topics: {', '.join(topics)}. "
-                "However, if needed, you may use additional words to make the response understandable."
-            )
-            vocabulary_hint = (
-                f"Try to use words from this set: {', '.join(vocabulary)}, "
-                "but you are allowed to use other words if necessary for fluency."
-            )
+            relevant_prompt = f"Prioritize responding in a way related to these topics: {', '.join(topics)}."
+            vocabulary_hint = f"Try to use words from this set: {', '.join(vocabulary)}, but additional words are allowed."
 
             conversation_history = "\n".join(f"- {msg}" for msg in past_messages)
 
