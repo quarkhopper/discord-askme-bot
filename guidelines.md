@@ -232,5 +232,35 @@ else:
 ✅ Ensures users are aware of failed DM attempts
 ✅ Prevents unnecessary bot clutter in server channels
 
+#### **5.5 Commands Throw Errors Instead of Blocking DM Execution**
+**Problem:** If a command should only be used in a server, simply checking `ctx.channel` **inside the command function** is too late—Discord will try to parse arguments **before that check runs**, potentially causing missing argument errors.  
+
+**Solution:** Use `@commands.check()` with a static method to **block DMs before parsing starts**.  
+This prevents the bot from trying to process arguments in an invalid context.
+
+**Example Fix:**
+```python
+@staticmethod
+async def not_in_dm(ctx):
+    """Prevents the command from running in DMs."""
+    if isinstance(ctx.channel, discord.DMChannel):
+        try:
+            await ctx.send("❌ This command can only be used in a server.")
+        except discord.Forbidden:
+            pass  # If DMs are disabled, fail silently
+        return False  # Prevents command execution
+    return True
+
+@commands.command()
+@commands.check(not_in_dm)  # ✅ Prevents execution before argument parsing
+async def example_command(ctx, required_argument: str):
+    await ctx.send(f"You entered: {required_argument}")
+```
+#### Why This Works:
+
+✅ Stops execution before parsing arguments.
+✅ Ensures the user gets an error message instead of an exception.
+✅ Handles Discord’s internal command flow correctly.
+
 ---
 

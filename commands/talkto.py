@@ -62,7 +62,7 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
-    @commands.check(not_in_dm)  # ✅ Uses static method correctly
+    @commands.check(not_in_dm)  # ✅ Prevents DM execution before parsing arguments
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
         """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
@@ -96,13 +96,20 @@ class TalkSimulator(commands.Cog):
             return
 
         try:
+            dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+
+            # ✅ Send execution header **before processing**
+            execution_header = (
+                f"**Command Executed:** !talkto\n"
+                f"**Channel:** {ctx.channel.name}\n"
+                f"**Timestamp:** {ctx.message.created_at}\n\n"
+                f"🗣️ **Simulating a response from {user.display_name}... Please wait.**"
+            )
+            await dm_channel.send(execution_header)
+
             past_messages = await self.fetch_user_messages(ctx, user)
             if not past_messages:
-                try:
-                    dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
-                    await dm_channel.send(f"⚠️ No messages found for {user.display_name}.")
-                except discord.Forbidden:
-                    await ctx.send(f"⚠️ No messages found for {user.display_name}.")
+                await dm_channel.send(f"⚠️ No messages found for {user.display_name}.")
                 return
 
             topics = {word for word in past_messages if len(word) > 4}
@@ -136,19 +143,8 @@ class TalkSimulator(commands.Cog):
 
             simulated_response = response.choices[0].message.content.strip()
 
-            execution_feedback = (
-                f"**Command Executed:** !talkto\n"
-                f"**Channel:** {ctx.channel.name}\n"
-                f"**Timestamp:** {ctx.message.created_at}\n\n"
-                f"🗣️ **Simulated Response from {user.display_name}:**\n{simulated_response}"
-            )
-
-            # ✅ Send DM response instead of posting in the server
-            try:
-                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
-                await dm_channel.send(execution_feedback)
-            except discord.Forbidden:
-                await ctx.send("❌ Could not send a DM. Please enable DMs from server members.")
+            # ✅ Send final response separately
+            await dm_channel.send(f"🗣️ **Simulated Response from {user.display_name}:**\n{simulated_response}")
 
         except Exception as e:
             config.logger.error(f"Error in !talkto: {e}")
