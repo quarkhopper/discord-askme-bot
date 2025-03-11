@@ -1,0 +1,55 @@
+ChatGPT-Optimized Markup Language (COML) Specification
+
+1. Overview
+The ChatGPT-Optimized Markup Language (COML) is designed to facilitate structured document processing, ensuring accurate editing, lossless formatting, and reliable exports to human-readable formats like Markdown.
+
+COML eliminates parsing inconsistencies, section reordering, and format corruption by explicitly defining sections, subsections, issues, fixes, and code blocks with structured tags.
+
+2. Core Syntax
+
+2.1 Sections
+Each major section starts with @SECTION[ID] TITLE, ensuring that sections remain explicit and immutable.
+
+2.2 Subsections
+Subsections within a section can be defined as:
+@SUBSECTION[ID] TITLE
+
+This ensures structure is maintained, even if order changes during editing.
+
+2.3 Issues and Fixes
+Issues and fixes are explicitly wrapped in @ISSUE and @FIX tags, preventing truncation.
+
+2.4 Code Blocks
+Code blocks are defined explicitly with @CODE[language] and @ENDCODE.
+
+2.5 Preformatted Text Blocks
+Preformatted text blocks are defined explicitly with @PRE and @ENDPRE.
+
+This ensures preformatted content such as directory trees, structured logs, and console outputs are preserved correctly, preventing unintended formatting changes.
+
+2.6 Inline Notes & Metadata
+Metadata can be embedded with @META[key] value.
+
+3. Editing Rules
+
+1. Sections must always retain their IDs (@SECTION[5.1] ensures the section isn't skipped).
+2. Edits must preserve all existing structure, meaning @END must always be matched.
+3. New content should be added using proper tags (e.g., @SUBSECTION, @FIX).
+4. Code and preformatted blocks must never be altered outside of @CODE[lang] ... @ENDCODE or @PRE ... @ENDPRE to prevent syntax corruption.
+5. Conversions to Markdown must extract and format content without losing structural elements.
+
+4. Conversion to Markdown
+
+A Markdown-export function will:
+- Convert @SECTION into ## headers.
+- Convert @SUBSECTION into ### headers.
+- Extract @CODE[python] ... @ENDCODE into fenced code blocks.
+- Extract @PRE ... @ENDPRE into fenced code blocks without a specified language.
+- Remove all @META tags (unless needed).
+
+5. Summary of Benefits
+- No More Missing Sections – Explicit section IDs eliminate loss.
+- No More Corrupted Formatting – Code, preformatted text, metadata, and fixes stay intact.
+- Consistent Editing – Changes are applied precisely.
+- Lossless Conversion to Markdown – The document remains readable for humans.
+
