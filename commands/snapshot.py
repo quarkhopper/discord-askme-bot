@@ -39,22 +39,36 @@ class Snapshot(commands.Cog):
         )
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict command usage to users with the "Peoples" role
+    @BotErrors.require_role("Vetted")  # ✅ Updated role requirement
     async def snapshot(self, ctx, channel: discord.TextChannel = None):
         """Generates an AI image based on the last 10 messages in a channel.
 
-        Usage:
+        **Usage:**
         `!snapshot` → Uses the current channel's last 10 messages.
         `!snapshot #channel-name` → Uses the last 10 messages from the specified channel.
+
+        **Restrictions:**
+        - ❌ **This command cannot be used in DMs.**
+        - ✅ **Requires the "Vetted" role to execute.**
+        - 📩 **Sends the response via DM.**
         """
 
-        if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
+        # ❌ Block DM mode but ensure the user gets feedback
+        if isinstance(ctx.channel, discord.DMChannel):
+            try:
+                await ctx.send("❌ The `!snapshot` command can only be used in a server.")
+            except discord.Forbidden:
+                pass  # If DMs are disabled, fail silently
+            return
+
+        # Check if command is in a forbidden channel
+        if await BotErrors.check_forbidden_channel(ctx):
             return
 
         if channel is None:
             channel = ctx.channel
 
-        waiting_message = await ctx.send(f"Analyzing recent messages in {channel.mention}... Please wait.")
+        waiting_message = await ctx.send(f"📸 Capturing recent messages in {channel.mention}... Please wait.")
 
         messages = []
         try:
@@ -62,11 +76,11 @@ class Snapshot(commands.Cog):
                 if not message.author.bot:
                     messages.append(f"{message.author.name}: {message.content}")
         except discord.Forbidden:
-            await waiting_message.edit(content=f"I don’t have permission to read {channel.mention}.")
+            await waiting_message.edit(content=f"❌ I don’t have permission to read {channel.mention}.")
             return
 
         if not messages:
-            await waiting_message.edit(content=f"No recent messages found in {channel.mention}.")
+            await waiting_message.edit(content=f"❌ No recent messages found in {channel.mention}.")
             return
 
         try:
@@ -78,11 +92,30 @@ class Snapshot(commands.Cog):
             dalle_response = await self.generate_image(image_prompt)
             image_url = dalle_response.data[0].url  
 
-            await waiting_message.edit(content=f"🎨 **Here's an AI-generated image based on {channel.mention}:**\n*{image_prompt}*\n{image_url}")
+            execution_feedback = (
+                f"**Command Executed:** !snapshot\n"
+                f"**Channel:** {ctx.channel.name}\n"
+                f"**Timestamp:** {ctx.message.created_at}\n\n"
+                f"🎨 **AI-Generated Image:**\n*{image_prompt}*\n{image_url}"
+            )
+
+            # ✅ Send DM response instead of posting in the server
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(execution_feedback)
+            except discord.Forbidden:
+                await ctx.send("❌ Could not send a DM. Please enable DMs from server members.")
+
+            # ✅ Delete the command message in the server
+            await ctx.message.delete()
 
         except Exception as e:
-            await waiting_message.edit(content=f"Error generating image: {e}")
-
+            config.logger.error(f"Error generating snapshot: {e}")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("An error occurred while generating the snapshot.")
+            except discord.Forbidden:
+                await ctx.send("An error occurred while generating the snapshot.")
 
 async def setup(bot):
     await bot.add_cog(Snapshot(bot))
