@@ -4,6 +4,7 @@ import openai
 import os
 import asyncio
 from commands.bot_errors import BotErrors  # Import the error handler
+import config  # Import shared config
 
 
 class Snapshot(commands.Cog):
