@@ -13,15 +13,20 @@ class DreamAnalysis(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
     async def dream(self, ctx, *, description: str):
         """Analyze a dream and provide an interpretation.
         
         Usage:
         `!dream I was flying over the ocean` → Returns a dream interpretation.
         """
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
-            return
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        # In Server Mode, enforce role restrictions and forbidden channel checks
+        if not is_dm:
+            if not await BotErrors.require_role("Vetted")(ctx):
+                return
+            if await BotErrors.check_forbidden_channel(ctx):
+                return
 
         try:
             response = self.openai_client.chat.completions.create(
@@ -35,7 +40,22 @@ class DreamAnalysis(commands.Cog):
             analysis = response.choices[0].message.content.strip()
 
             config.logger.info(f"Dream analyzed: {description[:50]}...")
-            await ctx.send(f"💭 **Dream Interpretation:** {analysis}")
+
+            # Determine where to send the response
+            if is_dm:
+                await ctx.send(f"💭 **Dream Interpretation:** {analysis}")
+            else:
+                try:
+                    dm_channel = await ctx.author.create_dm()
+                    await dm_channel.send(
+                        f"💭 **Dream Interpretation:**\n{analysis}\n\n_(Sent via DM for privacy)_"
+                    )
+                    await ctx.message.delete()
+                except discord.Forbidden:
+                    await ctx.send(
+                        "💭 **Dream Interpretation:**\n" + analysis +
+                        "\n\n_(Could not send a DM. Please enable DMs from server members.)_"
+                    )
 
         except Exception as e:
             config.logger.error(f"Error analyzing dream: {e}")
