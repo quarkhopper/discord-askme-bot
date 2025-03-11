@@ -15,16 +15,21 @@ class Guide(commands.Cog):
 
     @commands.command()
     async def guide(self, ctx):
-        """Provides a brief summary of the 5 most active channels, based on recent activity."""
+        """Provides a brief summary of the 5 most active channels, based on recent activity.
         
-        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        **Note:** This command **only works in servers** and cannot be used in DMs.
+        """
 
-        # In Server Mode, enforce role restrictions and forbidden channel checks
-        if not is_dm:
-            if not BotErrors.require_role("Vetted")(ctx):  # ✅ FIXED: Correct role check without `await`
-                return
-            if await BotErrors.check_forbidden_channel(ctx):
-                return
+        # Prevent command execution in DMs
+        if not ctx.guild:
+            await ctx.send("❌ This command can only be used in a server.")
+            return
+
+        # Enforce role restrictions and forbidden channel checks
+        if not BotErrors.require_role("Vetted")(ctx):
+            return
+        if await BotErrors.check_forbidden_channel(ctx):
+            return
 
         # Send "Please wait..." message
         waiting_message = await ctx.send("Fetching the most active channels... Please wait.")
@@ -90,33 +95,15 @@ class Guide(commands.Cog):
 
         guide_message += "\n".join(summaries)
 
-        # Standard Execution Header
-        header = (
-            f"📌 **Command Executed:** `!guide`\n"
-            f"📍 **Channel:** {ctx.channel.name if not is_dm else 'Direct Message'}\n"
-            f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
-        )
-
-        # Send response (split if needed)
+        # Split message if needed (Discord max length = 2000 characters)
         max_length = 2000
         parts = [guide_message[i:i + max_length] for i in range(0, len(guide_message), max_length)]
 
-        try:
-            if is_dm:
-                await ctx.send(header + parts[0])
+        for i, part in enumerate(parts):
+            if i == 0:
+                await waiting_message.edit(content=part)  # Edit "Please wait" message with first part
             else:
-                dm_channel = await ctx.author.create_dm()
-                await dm_channel.send(header + parts[0])
-                await ctx.message.delete()
-
-                for part in parts[1:]:
-                    await dm_channel.send(part)
-
-            await waiting_message.delete()
-        except discord.Forbidden:
-            await waiting_message.edit(content="⚠️ Could not send a DM. Please enable DMs from server members.")
-            for i, part in enumerate(parts):
-                await ctx.send(part if i == 0 else part)
+                await ctx.send(part)  # Send additional parts
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
