@@ -1,64 +1,44 @@
-# Document Update Strategy for COML-Based Guidelines
+# Definitive Strategy for Document Edits (Improved)
 
-## 1. **Ensuring a Complete Memory Refresh**
-To prevent discrepancies when updating documents, we must implement a **strict process** for refreshing cached content. The following steps must be followed **every time a document is uploaded**:
+## 1. Absolute Memory Refresh
+- Immediately discard **all previously stored information** related to any document whenever it is newly uploaded.
+- Always fully reload and explicitly verify the contents of the uploaded file before modifications.
 
-### **1.1 Full Memory Refresh on Upload**
-- Immediately discard all cached knowledge about previous versions of the document.
-- Fully reload the **latest uploaded document** before performing any modifications.
-- Extract and verify the document’s **section headers** to ensure completeness.
+## 2. Explicitly Scoped Edits
+- Edits must target only one clearly defined section or subsection at a time.
+- Do not regenerate the entire document unless explicitly required and verified against the latest upload.
+- Always explicitly refer to the uploaded source file; never rely solely on memory.
 
-### **1.2 Hard Verification of Canvas Content**
-- After applying an update, the **entire document must be checked against the uploaded version**.
-- Compare all section headers between the **uploaded file** and the **canvas document** before confirming success.
-- If any discrepancies exist, halt all modifications and **restore missing content first**.
+### Example of Correct Scoped Edit:
+```json
+{"updates":[{"pattern":"@SUBSECTION\[2\.1\] File Structure.*?@END","multiple":false,"replacement":"@SUBSECTION[2.1] File Structure\n@PRE\n<updated file structure here>\n@ENDPRE\n@END"}]}
+```
 
+### What to Avoid (Incorrect Example):
+```json
+{"updates":[{"pattern":".*","multiple":true,"replacement":"<regenerated entire document>"}]}
+```
 
-## 2. **Handling Missing Sections and Data Drift**
-One of the most severe issues we've encountered is the **gradual loss of sections** as edits are made. This can happen due to unintended truncation during partial updates. To prevent this, the following rules apply:
+## 3. Explicit Section Verification
+- Before modification:
+  - Explicitly verify and enumerate every section and subsection present in the uploaded document.
+- After modification, immediately re-verify:
+  - All sections and subsections still exist.
+  - No unintended edits have occurred.
 
-### **2.1 Always Verify the Full Structure Before Editing**
-- Extract a **full list of section headers** before making any modifications.
-- Ensure that **all major sections and subsections** are present before proceeding.
-- If any sections are missing, halt modifications and **restore the missing data first**.
+## 3. Recovery and Correction Procedure
+- If any section or subsection is discovered missing after an edit:
+  - Halt all editing immediately.
+  - Fully restore the original content from the uploaded document.
+  - Re-verify the document explicitly against the original uploaded document.
 
-### **2.2 Preventing Partial Loss of Sections**
-- **Edits must always be scoped to specific sections.**
-  - If modifying a section, only update that section **without affecting others**.
-  - Do not overwrite the entire document unless performing a full refresh.
-- **Compare against the previous structure before saving updates.**
-- Ensure that **updates are non-destructive**—if a section was there before, it must still be there after.
+## 4. Continuous Integrity Checks
+- Perform explicit integrity checks between each step of the modification process.
+- Always explicitly compare the current state to the uploaded original.
 
+## 4. Final Checks
+- Before confirming any completed edits:
+  - Explicitly list all major sections and subsections.
+  - Confirm their presence and integrity against the source document.
 
-## 3. **Verification Before and After Any Modification**
-A rigorous **pre-edit and post-edit verification** process is required to prevent repeated loss of sections.
-
-### **3.1 Pre-Edit Checklist**
-Before modifying any document:
-1. **Extract all section headers** and compare them with the latest uploaded version.
-2. Ensure that all expected sections are present.
-3. Verify if any sections were **partially truncated** in previous edits.
-
-### **3.2 Post-Edit Checklist**
-After making modifications:
-1. **Re-check section headers** to confirm that no sections were lost.
-2. Compare the document structure **before and after** the update.
-3. Ensure that no unintended modifications were made outside the intended section.
-4. If discrepancies exist, **immediately restore missing sections** before continuing.
-
-
-## 4. **Addressing Specific Problems Encountered**
-### **4.1 Case Study: Section 5 Was Missing, Now Sections 3 and 4 Are Gone**
-- **Cause:** The update unintentionally replaced too large a portion of the document, removing sections that should have remained.
-- **Fix:** Implement **section-by-section updates** rather than overwriting large portions of the document.
-- **Prevention:** Apply the pre-edit and post-edit **verification steps** to catch these issues immediately.
-
-
-## 5. **Final Best Practices**
-- **Always work from the most recent uploaded document.**
-- **Do not assume previous modifications were successful—verify them every time.**
-- **Updates must be precise—modify only what is necessary, and never overwrite other sections.**
-- **Any time a section is missing, stop and restore before proceeding.**
-
-By following this strategy, we ensure that updates are **accurate, lossless, and structured**, preventing errors from accumulating over multiple iterations.
-
+Adopting this strict approach ensures document integrity, prevents accidental data loss, and maintains editing accuracy.
