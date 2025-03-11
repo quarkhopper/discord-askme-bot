@@ -99,14 +99,12 @@ class Catchup(commands.Cog):
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
-                            "Summarize the following Discord messages in a structured format with **clearly defined categories**. "
-                            "Each category should be distinct, and messages should be assigned only to appropriate categories. "
-                            "Do not mix unrelated messages under the same heading. "
-                            "Prioritize users experiencing major life stress in this order: \n"
-                            "1) **Medical emergencies, crises, or major loss** should always appear first. \n"
-                            "2) **Deep emotional distress, relapses, mental health breakdowns** should come next. \n"
-                            "3) **General stressors like work frustration, sleep issues, or minor emotional difficulties** should appear last. \n"
-                            "Summarize each user’s contributions in up to 5 sentences per person, ensuring that the most affected users appear first."
+                            "Summarize the following Discord messages in a structured format with **four distinct categories**: \n"
+                            "1) **Medical emergencies, crises, or major loss** – These should always be prioritized first. \n"
+                            "2) **Deep emotional distress, relapses, or mental health struggles** – These include severe emotional challenges, recovery struggles, and urgent support needs. \n"
+                            "3) **General stressors** – Cover minor frustrations, work stress, sleep issues, and common day-to-day struggles. \n"
+                            "4) **Positive news and miscellaneous updates** – Include celebrations, achievements, lighthearted moments, casual discussions, and general check-ins.\n"
+                            "Ensure messages are categorized correctly, and avoid placing positive updates in stressful categories."
                         },
                         {"role": "user", "content": "\n".join(formatted_messages)}
                     ]
