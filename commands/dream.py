@@ -23,7 +23,7 @@ class DreamAnalysis(commands.Cog):
 
         # In Server Mode, enforce role restrictions and forbidden channel checks
         if not is_dm:
-            if not await BotErrors.require_role("Vetted")(ctx):
+            if not BotErrors.require_role("Vetted")(ctx):  # ✅ FIXED: Removed `await`
                 return
             if await BotErrors.check_forbidden_channel(ctx):
                 return
