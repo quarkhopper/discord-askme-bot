@@ -82,8 +82,14 @@ class NounLibs(commands.Cog):
         - Have a natural progression with **clear events leading to a conclusion**.
         - Be **about 10 sentences long**.
 
+        ⚠️ **Important Rules:**
+        - Do **not** replace the noun with any synonyms, descriptors, or alternative names.  
+        - Do **not** refer to it as an "object," "statue," "figure," or anything other than exactly what it is.  
+        - The noun should always be referred to as `REPLACE-THIS-WORD`.  
+        - Avoid any implied assumptions about the noun’s nature.  
+
         Do **not** include the word "{received_noun}" in the story. 
-        Instead, replace it with `REPLACE-THIS-WORD` where it would normally appear.
+        Instead, replace it with `REPLACE-THIS-WORD` exactly as written.
         """
 
         try:
