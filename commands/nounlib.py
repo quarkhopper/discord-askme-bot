@@ -27,7 +27,7 @@ class NounLibs(commands.Cog):
                 return m.author == target_user and isinstance(m.channel, discord.DMChannel)
 
             response = await ctx.bot.wait_for("message", check=check, timeout=60)  # Wait 60 seconds
-            return response.content.strip().split()[0]  # Return first word
+            return response.content.strip()
 
         except asyncio.TimeoutError:
             return None
@@ -48,17 +48,17 @@ class NounLibs(commands.Cog):
     @commands.command()
     @commands.check(not_in_dm)  # ✅ Ensures command is only used in a server
     @BotErrors.require_role("Vetted")  # ✅ Requires "Vetted" role
-    async def nounlib(self, ctx, user_noun: str, target_user: discord.Member):
+    async def nounlib(self, ctx, target_user: discord.Member, *, user_noun: str):
         """Generates a story where one user's noun replaces another user's noun.
 
         **Usage:**
-        `!nounlib [noun] [@user]` → DMs @user for a noun, generates a story for that noun, and swaps it with [noun].
+        `!nounlib [@user] [noun phrase]` → DMs @user for a noun, generates a story for that noun, and swaps it with the provided noun phrase.
 
         **Example:**
-        `!nounlib dragon @MidlevelNPC`
+        `!nounlib @MidlevelNPC flying toaster`
         🔹 @MidlevelNPC is asked for a noun (e.g., "pogo stick")
         🔹 AI generates a story about "pogo stick"
-        🔹 All "pogo stick" references are replaced with "dragon"
+        🔹 All "pogo stick" references are replaced with "flying toaster"
         🔹 The final story is DMed to **both** users.
 
         **Restrictions:**
