@@ -77,12 +77,13 @@ class NounLibs(commands.Cog):
         story_prompt = f"""
         Write a **well-developed short story** where a **{received_noun}** is the central object of interest.
         The story should:
+        - Introduce the **{received_noun}** **within the first two sentences**.
         - Keep the **{received_noun}** important from beginning to end.
         - Have a natural progression with **clear events leading to a conclusion**.
         - Be **about 10 sentences long**.
-        
+
         Do **not** include the word "{received_noun}" in the story. 
-        Instead, leave a blank space where it should be mentioned.
+        Instead, replace it with `~~~` where it would normally appear.
         """
 
         try:
@@ -93,8 +94,8 @@ class NounLibs(commands.Cog):
             )
             story = response.choices[0].message.content.strip()
 
-            # ✅ Step 3: Replace the AI noun with the first user's noun
-            formatted_story = re.sub(rf"\b{re.escape(received_noun)}\b", f"**{user_noun}**", story, flags=re.IGNORECASE)
+            # ✅ Step 3: Replace the placeholder "~~~" with the first user's noun
+            formatted_story = story.replace("~~~", f"**{user_noun}**")
 
             # ✅ Step 4: DM the final story to both users
             message = (
