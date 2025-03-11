@@ -141,11 +141,31 @@ class MoodAnalyzer(commands.Cog):
             
             mood_analysis = response.choices[0].message.content.strip()
             config.logger.info(f"Mood analysis result: {mood_analysis}")
-            await ctx.send(f"💡 Mood Analysis: {mood_analysis}")
+
+            # ✅ Ensure execution feedback is **ALWAYS** sent via DM
+            execution_feedback = (
+                f"**Command Executed:** !mood\n"
+                f"**Channel:** {ctx.channel.name}\n"
+                f"**Timestamp:** {ctx.message.created_at}\n\n"
+                f"💡 **Mood Analysis:**\n{mood_analysis}"
+            )
+
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(execution_feedback)
+            except discord.Forbidden:
+                await ctx.send("❌ Could not send a DM. Please enable DMs from server members.")
+
+            # ✅ Delete command message in **server mode**
+            await ctx.message.delete()
 
         except Exception as e:
             config.logger.error(f"Error analyzing mood: {e}")
-            await ctx.send("An error occurred while analyzing the mood.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("An error occurred while analyzing the mood.")
+            except discord.Forbidden:
+                await ctx.send("An error occurred while analyzing the mood.")
 
 async def setup(bot):
     await bot.add_cog(MoodAnalyzer(bot))
