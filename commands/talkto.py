@@ -14,10 +14,14 @@ class TalkSimulator(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def not_in_dm(ctx):
+    async def not_in_dm(self, ctx):
         """Prevents the command from running in DMs."""
         if isinstance(ctx.channel, discord.DMChannel):
-            raise commands.CheckFailure("❌ The `!talkto` command can only be used in a server.")
+            try:
+                await ctx.send("❌ The `!talkto` command can only be used in a server.")
+            except discord.Forbidden:
+                pass  # Fail silently if DMs are disabled
+            return False  # Prevents command execution
         return True
 
     async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500):
