@@ -13,9 +13,12 @@ async def mood(self, ctx, *args):
     - ❌ **This command cannot be used in DMs.**
     """
 
-    # ❌ Block DM mode
+    # ❌ Block DM mode but ensure the user gets feedback
     if isinstance(ctx.channel, discord.DMChannel):
-        await ctx.send("❌ The `!mood` command can only be used in a server.")
+        try:
+            await ctx.send("❌ The `!mood` command can only be used in a server.")
+        except discord.Forbidden:
+            pass  # In case the user has DMs disabled
         return
 
     # Check if command is in a forbidden channel
