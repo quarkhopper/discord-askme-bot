@@ -9,28 +9,32 @@ ensuring design consistency and efficient synchronization across multiple develo
 @SECTION[2] Bot Architecture
 
 @SUBSECTION[2.1] File Structure
+@PRE
 discord-askme-bot/
-├── config.py              # Bot configuration and environment variables
-├── main.py                # Entry point for the bot
-├── Procfile               # Railway process definition
-├── requirements.txt       # Dependencies
-├── commands/              # Directory for command implementations
-│   ├── bot_errors.py      # Global error handling
-│   ├── catchup.py         # !catchup command
-│   ├── chat.py            # !chat command
-│   ├── dream.py           # !dream command
-│   ├── guide.py           # !guide command
-│   ├── image.py           # !image command
-│   ├── mood.py            # !mood command
-│   ├── planhour.py        # !planhour command
-│   ├── planlife.py        # !planlife command
-│   ├── snapshot.py        # !snapshot command
-│   ├── talkto.py          # !talkto command
-│   ├── message_utils.py   # Shared message processing utilities
-├── guidelines.txt         # Design guidelines and bot documentation
-└── .git/                  # Git repository metadata
-@END
-
+├── config.py
+├── main.py
+├── Procfile
+├── requirements.txt
+├── commands/
+│   ├── bot_errors.py
+│   ├── catchup.py
+│   ├── chat.py
+│   ├── commands.py
+│   ├── dream.py
+│   ├── guide.py
+│   ├── image.py
+│   ├── message_utils.py
+│   ├── mood.py
+│   ├── nounlib.py
+│   ├── planhour.py
+│   ├── planlife.py
+│   ├── snapshot.py
+│   └── talkto.py
+├── docs/
+│   ├── coml_spec.txt
+│   ├── guidelines.coml
+│   └── update_strategy.md
+@ENDPRE
 @SUBSECTION[2.2] Main Components
 - main.py: Handles bot initialization, event listening, and command registration.
 - config.py: Manages environment variables, tokens, and other settings.

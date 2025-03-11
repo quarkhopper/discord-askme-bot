@@ -42,3 +42,24 @@
   - Confirm their presence and integrity against the source document.
 
 Adopting this strict approach ensures document integrity, prevents accidental data loss, and maintains editing accuracy.
+## Explicit Handling of Regex Patterns (Lessons Learned)
+
+### Issue Encountered:
+- Regex pattern matching during document updates occasionally failed or led to unintended document modifications.
+
+### Lessons Learned:
+- Always explicitly test and confirm regex patterns on smaller text samples before applying them to entire documents.
+- Explicitly specify regex boundaries clearly to match exactly the intended sections/subsections only.
+- Avoid overly broad or greedy patterns (e.g., .* without proper limits), as these can unintentionally remove or alter large portions of text.
+
+### Recommended Best Practices:
+- Explicitly use non-greedy quantifiers (.*?), when matching section/subsection content.
+- Explicitly anchor patterns clearly with lookahead assertions such as (?=@SECTION|\@SUBSECTION|\Z) to precisely limit matches.
+- After applying regex substitutions, explicitly verify immediately that the intended changes occurred without side effects.
+
+### Explicitly Verified Example Pattern:
+```regex
+(@SUBSECTION\[2\.1\] File Structure).*?(?=@SUBSECTION|@SECTION|\Z)
+```
+
+Applying these explicit lessons learned improves reliability and accuracy during updates.
