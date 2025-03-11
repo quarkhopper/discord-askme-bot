@@ -6,7 +6,7 @@ from commands.bot_errors import BotErrors  # Import the error handler
 
 
 class MessageUtils(commands.Cog):
-    """Cog for message management commands (clear, match, clearafter)."""
+    """Cog for message management commands (clear, match)."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -71,39 +71,6 @@ class MessageUtils(commands.Cog):
             config.logger.error(f"Error finding message: {e}")
             await ctx.send("An error occurred while searching for messages.")
             return None
-
-    @commands.command()
-    @BotErrors.require_role("Fun Police")  # ✅ Requires both "Fun Police"
-    @BotErrors.require_role("Vetted")      # ✅ and "Vetted" roles
-    async def clearafter(self, ctx, *, text: str):
-        """Clears all messages after a matched message.
-
-        **This command only works in servers.**  
-
-        Usage:
-        `!clearafter hello` → Finds "hello" and deletes all messages after it.
-        """
-
-        if not ctx.guild:
-            await ctx.send("❌ This command can only be used in a server.")
-            return
-
-        try:
-            count = 0
-            async for message in ctx.channel.history(limit=100):
-                if text in message.content:
-                    break
-                count += 1
-            else:
-                await ctx.send("❌ No messages found containing the specified text.")
-                return
-
-            # Corrected line:
-            deleted = await ctx.channel.purge(limit=count + 2)  # Deletes command + messages after match
-            await ctx.send(f"✅ Cleared {len(deleted) - 1} messages after `{text}` in #{ctx.channel.name}.")
-        except Exception as e:
-            config.logger.error(f"Error clearing messages after match: {e}")
-            await ctx.send("An error occurred while clearing messages.")
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))
