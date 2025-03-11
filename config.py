@@ -5,8 +5,8 @@ import discord
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("discord_bot")  # Named logger for consistency
 
-# Define forbidden channels
-FORBIDDEN_CHANNELS = ["general"]
+# Define forbidden channels (now empty)
+FORBIDDEN_CHANNELS = []  # ✅ No longer restricting #general
 
 def is_forbidden_channel(ctx):
     """Returns True if the command is executed in a forbidden channel."""
