@@ -17,7 +17,7 @@ class Catchup(commands.Cog):
 
     @commands.command()
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
-    async def catchup(self, ctx, channel: discord.TextChannel = None, max_users: int = 10):
+    async def catchup(self, ctx, channel: discord.TextChannel = None):
         """Summarizes activity across all channels or within a single specified channel.
         
         Usage:
@@ -66,7 +66,7 @@ class Catchup(commands.Cog):
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, grouping discussions by topic in bullet points."},
+                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, ensuring that each topic grouping is meaningful and distinct. Avoid placing unrelated messages under incorrect headings."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
@@ -98,7 +98,16 @@ class Catchup(commands.Cog):
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages in a bullet point format, grouping by user. Prioritize users experiencing the most severe life stresses, in this order: \n1) Medical emergencies, crises, or major loss should always appear first. \n2) Deep emotional distress, relapses, mental health breakdowns should come next. \n3) General stressors like work frustration, sleep issues, or minor emotional difficulties should appear last. \nSummarize each user’s contributions in up to 5 sentences, and limit the report to the **top {max_users} most affected users**. Each user’s summary should appear as a single bullet point."},
+                        {"role": "system", "content": 
+                            "Summarize the following Discord messages in a structured format with **clearly defined categories**. "
+                            "Each category should be distinct, and messages should be assigned only to appropriate categories. "
+                            "Do not mix unrelated messages under the same heading. "
+                            "Prioritize users experiencing major life stress in this order: \n"
+                            "1) **Medical emergencies, crises, or major loss** should always appear first. \n"
+                            "2) **Deep emotional distress, relapses, mental health breakdowns** should come next. \n"
+                            "3) **General stressors like work frustration, sleep issues, or minor emotional difficulties** should appear last. \n"
+                            "Summarize each user’s contributions in up to 5 sentences per person, ensuring that the most affected users appear first."
+                        },
                         {"role": "user", "content": "\n".join(formatted_messages)}
                     ]
                 )
