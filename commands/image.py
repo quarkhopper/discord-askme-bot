@@ -20,7 +20,9 @@ class ImageGen(commands.Cog):
         Usage:
         `!image a futuristic city at sunset` → Generates an image of a futuristic city at sunset.
         """
-        if await BotErrors.check_forbidden_channel(ctx):  # Prevents execution in forbidden channels
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        if not is_dm and await BotErrors.check_forbidden_channel(ctx):  # Prevents execution in forbidden channels
             return
 
         # Attempt to send the execution header via DM
@@ -28,13 +30,15 @@ class ImageGen(commands.Cog):
             dm_channel = await ctx.author.create_dm()
             await dm_channel.send(
                 f"📌 **Command Executed:** `!image`\n"
-                f"📍 **Channel:** {ctx.channel.name}\n"
+                f"📍 **Channel:** {'Direct Message' if is_dm else ctx.channel.name}\n"  # ✅ Fixes AttributeError
                 f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
                 f"🎨 **Generating an image for prompt:** `{prompt}`"
             )
-            await ctx.message.delete()  # Delete the command message in server mode
+            if not is_dm:
+                await ctx.message.delete()  # Delete the command message in server mode
         except discord.Forbidden:
-            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+            if not is_dm:
+                await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
             return  # Stop execution if DM cannot be sent
 
         try:
