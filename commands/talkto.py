@@ -5,7 +5,6 @@ import config  # Import shared config
 import os
 import re  # Regex for extracting words
 from collections import Counter
-from datetime import datetime, timedelta
 from commands.bot_errors import BotErrors  # Error handler
 
 class TalkSimulator(commands.Cog):
@@ -64,27 +63,54 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Ensure only authorized roles can use it
+    @BotErrors.require_role("Vetted")  # ✅ Updated role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
         """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
 
-        Usage:
+        **Usage:**
         `!talkto @User What do you think about AI?`
+
+        **Restrictions:**
+        - ❌ **This command cannot be used in DMs.**
+        - ✅ **Requires the "Vetted" role to execute.**
+        - 📩 **Sends the response via DM.**
         """
-        if config.is_forbidden_channel(ctx):
-            return
-        
-        user = await self.resolve_member(ctx, user_mention)
-        if not user:
-            await ctx.send(f"⚠️ Could not find a user matching `{user_mention}`.")
+
+        # ❌ Block DM mode but ensure the user gets feedback
+        if isinstance(ctx.channel, discord.DMChannel):
+            try:
+                await ctx.send("❌ The `!talkto` command can only be used in a server.")
+            except discord.Forbidden:
+                pass  # If DMs are disabled, fail silently
             return
 
-        waiting_message = await ctx.send(f"⏳ Please wait, generating a response for {user.display_name}...")
+        # ✅ Immediately delete the command message to avoid clutter
+        try:
+            await ctx.message.delete()
+        except discord.NotFound:
+            pass  # If message was already deleted, ignore
+
+        # Check if command is in a forbidden channel
+        if await BotErrors.check_forbidden_channel(ctx):
+            return
+
+        user = await self.resolve_member(ctx, user_mention)
+        if not user:
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(f"⚠️ Could not find a user matching `{user_mention}`.")
+            except discord.Forbidden:
+                await ctx.send(f"⚠️ Could not find a user matching `{user_mention}`.")
+            return
 
         try:
             past_messages = await self.fetch_user_messages(ctx, user)
             if not past_messages:
-                await waiting_message.edit(content=f"⚠️ No messages found for {user.display_name}.")
+                try:
+                    dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                    await dm_channel.send(f"⚠️ No messages found for {user.display_name}.")
+                except discord.Forbidden:
+                    await ctx.send(f"⚠️ No messages found for {user.display_name}.")
                 return
 
             topics, vocabulary = self.extract_topics_and_vocab(past_messages)
@@ -123,11 +149,28 @@ class TalkSimulator(commands.Cog):
             )
 
             simulated_response = response.choices[0].message.content.strip()
-            await waiting_message.edit(content=f"**{user.display_name} might say:** {simulated_response}")
+
+            execution_feedback = (
+                f"**Command Executed:** !talkto\n"
+                f"**Channel:** {ctx.channel.name}\n"
+                f"**Timestamp:** {ctx.message.created_at}\n\n"
+                f"🗣️ **Simulated Response from {user.display_name}:**\n{simulated_response}"
+            )
+
+            # ✅ Send DM response instead of posting in the server
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(execution_feedback)
+            except discord.Forbidden:
+                await ctx.send("❌ Could not send a DM. Please enable DMs from server members.")
 
         except Exception as e:
             config.logger.error(f"Error in !talkto: {e}")
-            await waiting_message.edit(content="⚠️ An error occurred while generating a response.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("⚠️ An error occurred while generating a response.")
+            except discord.Forbidden:
+                await ctx.send("⚠️ An error occurred while generating a response.")
 
 async def setup(bot):
     await bot.add_cog(TalkSimulator(bot))
