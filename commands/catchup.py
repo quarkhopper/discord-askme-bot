@@ -28,15 +28,18 @@ class Catchup(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
             return
 
+        # Attempt to send the execution header via DM
         try:
             dm_channel = await ctx.author.create_dm()
             await dm_channel.send(
-                f"**Command Executed:** catchup\n**Channel:** {channel.mention if channel else 'All Channels'}\n**Timestamp:** {ctx.message.created_at}"
+                f"📌 **Command Executed:** `!catchup`\n"
+                f"📍 **Channel:** {channel.mention if channel else 'All Channels'}\n"
+                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
             )
             await ctx.message.delete()  # Delete command message after DM is sent
         except discord.Forbidden:
-            await ctx.send("Could not send a DM. Please enable DMs from server members.")
-            return
+            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+            return  # Stop execution if DM cannot be sent
 
         time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
