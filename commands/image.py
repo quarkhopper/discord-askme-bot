@@ -13,15 +13,29 @@ class ImageGen(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
+    @BotErrors.require_role("Vetted")  # ✅ Enforce correct role
     async def image(self, ctx, *, prompt: str):
         """Generate an image using OpenAI's DALL·E API.
         
         Usage:
         `!image a futuristic city at sunset` → Generates an image of a futuristic city at sunset.
         """
-        if await BotErrors.check_forbidden_channel(ctx):  # Use the centralized check
+        if await BotErrors.check_forbidden_channel(ctx):  # Prevents execution in forbidden channels
             return
+
+        # Attempt to send the execution header via DM
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send(
+                f"📌 **Command Executed:** `!image`\n"
+                f"📍 **Channel:** {ctx.channel.name}\n"
+                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
+                f"🎨 **Generating an image for prompt:** `{prompt}`"
+            )
+            await ctx.message.delete()  # Delete the command message in server mode
+        except discord.Forbidden:
+            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+            return  # Stop execution if DM cannot be sent
 
         try:
             response = self.openai_client.images.generate(
@@ -30,15 +44,17 @@ class ImageGen(commands.Cog):
                 size="1024x1024"
             )
 
-            # Correctly access the generated image URL
+            # Access the generated image URL
             image_url = response.data[0].url  
 
             config.logger.info(f"Generated image for prompt: {prompt}")
-            await ctx.send(image_url)
+
+            # Send the image link via DM
+            await dm_channel.send(f"🖼 **Here is your generated image:**\n{image_url}")
 
         except Exception as e:
             config.logger.error(f"Error generating image: {e}")
-            await ctx.send("An error occurred while generating the image.")
+            await dm_channel.send("An error occurred while generating the image.")
 
 async def setup(bot):
     await bot.add_cog(ImageGen(bot))
