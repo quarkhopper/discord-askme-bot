@@ -56,6 +56,9 @@ class MoodAnalyzer(commands.Cog):
 
     async def resolve_channel(self, ctx, identifier):
         """Tries to resolve a channel by mention, name, or ID."""
+        if ctx.guild is None:
+            return None  # Prevents lookup in DMs, since there's no guild
+
         channel = None
         channel_id = self.extract_id(identifier)
 
