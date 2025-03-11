@@ -6,7 +6,7 @@ from commands.bot_errors import BotErrors  # Import the error handler
 
 
 class MessageUtils(commands.Cog):
-    """Cog for message management commands (clear, match, clearafter, clearall)."""
+    """Cog for message management commands (clear, match, clearafter)."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -49,6 +49,8 @@ class MessageUtils(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
+        is_dm = isinstance(ctx.channel, discord.DMChannel)  # ✅ Check if running in a DM
+
         try:
             count = 0
             async for message in ctx.channel.history(limit=100):
@@ -57,7 +59,10 @@ class MessageUtils(commands.Cog):
                 count += 1
                 if text in message.content:
                     await ctx.send(f"🔎 Found message {count} messages ago:\n**{message.author.display_name}:** `{message.content}`")
-                    await ctx.message.delete()  # ✅ Deletes command message in server mode
+                    
+                    if not is_dm:  # ✅ Only delete the command message in server mode
+                        await ctx.message.delete()
+
                     return count  
 
             await ctx.send("❌ No messages found containing the specified text.")
@@ -98,47 +103,6 @@ class MessageUtils(commands.Cog):
         except Exception as e:
             config.logger.error(f"Error clearing messages after match: {e}")
             await ctx.send("An error occurred while clearing messages.")
-
-    @commands.command()
-    async def clearall(self, ctx):
-        """Clears all bot messages in the DM history.  
-        
-        **This command only works in DMs.**
-        """
-
-        if not isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send("❌ This command can only be used in a direct message.")
-            return
-
-        try:
-            dm_channel = await ctx.author.create_dm()
-            await dm_channel.send(
-                f"📌 **Command Executed:** `!clearall`\n"
-                f"📍 **Context:** Direct Message\n"
-                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
-                f"🧹 **Clearing all bot messages in this DM.**"
-            )
-        except discord.Forbidden:
-            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
-            return
-
-        deleted_count = 0
-
-        try:
-            # Fetch the last 500 messages and delete only those from the bot
-            async for message in ctx.channel.history(limit=500):
-                if message.author == self.bot.user:
-                    try:
-                        await message.delete()
-                        deleted_count += 1
-                        await asyncio.sleep(0.5)  # Prevent rate-limiting
-                    except discord.NotFound:
-                        continue  # Skip if message is already deleted
-
-            await dm_channel.send(f"✅ Cleared {deleted_count} bot messages.")
-        except Exception as e:
-            config.logger.error(f"Error clearing bot messages in DM: {e}")
-            await dm_channel.send("An error occurred while clearing messages.")
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))
