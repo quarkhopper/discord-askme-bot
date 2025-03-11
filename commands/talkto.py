@@ -14,6 +14,12 @@ class TalkSimulator(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+    def not_in_dm(ctx):
+        """Prevents the command from running in DMs."""
+        if isinstance(ctx.channel, discord.DMChannel):
+            raise commands.CheckFailure("❌ The `!talkto` command can only be used in a server.")
+        return True
+
     async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500):
         """Fetches messages from a user, limited to 10 per channel, 
         with a total cap of 500, without excluding inactive channels."""
@@ -51,6 +57,7 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
+    @commands.check(not_in_dm)  # ✅ Prevents DM execution before parsing arguments
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
         """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
@@ -63,11 +70,6 @@ class TalkSimulator(commands.Cog):
         - ✅ **Requires the "Vetted" role to execute.**
         - 📩 **Sends the response via DM.**
         """
-
-        # ❌ Block DM mode but ensure the user gets feedback
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send("❌ The `!talkto` command can only be used in a server.")
-            return
 
         # ✅ Immediately delete the command message to avoid clutter
         try:
