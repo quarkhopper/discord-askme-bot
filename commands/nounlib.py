@@ -4,14 +4,14 @@ import openai
 import re
 import config  # Logging and settings
 from commands.bot_errors import BotErrors  # Error handling
+import os
 
 class NounLibs(commands.Cog):
     """Cog for generating absurd stories where a user unknowingly swaps the main noun."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.openai_client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
-
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")) 
     @commands.command()
     @BotErrors.require_role("Vetted")  # ✅ Requires "Vetted" role
     async def nounlib(self, ctx, user_noun: str):

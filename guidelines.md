@@ -139,6 +139,19 @@ def setup(bot):
 - **All commands must include a usage statement in the docstring, explaining the command syntax and expected arguments**.  
 - **The command message should always be immediately deleted after execution begins, regardless of processing time, to keep the server clean.**
 
+### 4.3 OpenAI API Key Handling
+
+- All commands that require OpenAI API access **must** retrieve the API key from an environment variable.
+- The **only** correct way to initialize an OpenAI client is:
+
+  ```python
+  import os
+  import openai
+
+  openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+  ```
+- Do NOT store the API key directly in config.py or in the command file.
+- If the API key is missing, the command should fail gracefully and log an error.
 
 ---
 
