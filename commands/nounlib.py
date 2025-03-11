@@ -20,7 +20,7 @@ class NounLibs(commands.Cog):
             dm_channel = target_user.dm_channel or await target_user.create_dm()
             await dm_channel.send(
                 f"👋 Hey {target_user.name}! {ctx.author.name} is playing **NounLibs** and needs you to provide a noun! "
-                "Please reply to this message with **a single noun**."
+                "Please reply to this message with **a single noun or short phrase**."
             )
 
             def check(m):
@@ -70,7 +70,11 @@ class NounLibs(commands.Cog):
         # ✅ Step 1: Ask the target user for a noun via DM
         received_noun = await self.request_noun_from_user(target_user, ctx)
         if not received_noun:
-            await ctx.send(f"⚠️ {target_user.name} did not respond in time or has DMs disabled.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(f"⚠️ {target_user.name} did not respond in time or has DMs disabled.")
+            except discord.Forbidden:
+                pass  # Fail silently if DMs are disabled
             return
 
         # ✅ Step 2: Generate a **longer 10-sentence story** for the noun
@@ -110,22 +114,26 @@ class NounLibs(commands.Cog):
                 f"{formatted_story}"
             )
 
-            sent_to = []
             for user in [ctx.author, target_user]:  # DM both the requester and the noun provider
                 try:
                     dm_channel = user.dm_channel or await user.create_dm()
                     await dm_channel.send(message)
-                    sent_to.append(user.name)
                 except discord.Forbidden:
-                    await ctx.send(f"❌ Could not send a DM to {user.name}. Please enable DMs from server members.")
-
-            # ✅ Confirmation message in the server
-            if sent_to:
-                await ctx.send(f"✅ The **NounLib** story has been sent to {', '.join(sent_to)} via DM!")
+                    pass  # Fail silently if DMs are disabled
 
         except Exception as e:
             config.logger.error(f"Error in !nounlib: {e}")
-            await ctx.send("⚠️ An error occurred while generating your story. Try again!")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("⚠️ An error occurred while generating your story. Try again!")
+            except discord.Forbidden:
+                pass  # Fail silently if DMs are disabled
+
+        # ✅ Step 5: Immediately delete the command message in the server (to avoid clutter)
+        try:
+            await ctx.message.delete()
+        except discord.NotFound:
+            pass  # If already deleted, ignore
 
 async def setup(bot):
     await bot.add_cog(NounLibs(bot))
