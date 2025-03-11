@@ -25,6 +25,11 @@ class Catchup(commands.Cog):
         `!catchup #channel` → Summarizes discussions in the specified channel, grouping messages by topic.
         """
 
+        # Prevent command execution in DMs
+        if not ctx.guild:
+            await ctx.send("❌ This command can only be used in a server.")
+            return
+
         if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
             return
 
