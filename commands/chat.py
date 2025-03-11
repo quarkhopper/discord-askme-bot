@@ -25,40 +25,36 @@ class Chat(commands.Cog):
         """
         is_dm = isinstance(ctx.channel, discord.DMChannel)
 
-        # Debug log
-        print(f"[DEBUG] chat command called. DM Mode: {is_dm}")
-
         # Server mode: enforce role restriction and check server membership
         if not is_dm:
             if not BotErrors.require_role("Vetted")(ctx):
-                print("[DEBUG] User lacks 'Vetted' role. Exiting command.")
                 return
             try:
-                member = await ctx.guild.fetch_member(ctx.author.id)
+                member = ctx.guild.get_member(ctx.author.id) or await ctx.guild.fetch_member(ctx.author.id)
                 if not member:
-                    member = ctx.guild.get_member(ctx.author.id)  # Backup check
-                if not member:
-                    print("[DEBUG] User is not found in the server members list.")
                     await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
                     return
             except discord.NotFound:
-                print("[DEBUG] Member not found via fetch_member(). Possible issue with intents.")
                 await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
                 return
-            except Exception as e:
-                print(f"[DEBUG] Error fetching member list: {e}")
+            except Exception:
                 await ctx.send("An error occurred while verifying your membership.")
                 return
 
+        # Attempt to send the execution header via DM
         try:
             dm_channel = await ctx.author.create_dm()
             await dm_channel.send(
-                f"**Command Executed:** chat\n**Channel:** {'Direct Message' if is_dm else ctx.channel.name}\n**Timestamp:** {ctx.message.created_at}"
+                f"📌 **Command Executed:** `!chat`\n"
+                f"📍 **Channel:** {'Direct Message' if is_dm else ctx.channel.name}\n"
+                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
             )
+            if not is_dm:
+                await ctx.message.delete()  # Delete the original command message in server mode
         except discord.Forbidden:
             if not is_dm:
-                await ctx.send("Could not send a DM. Please enable DMs from server members.")
-            return
+                await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+            return  # Stop execution if DM cannot be sent
 
         try:
             response = self.openai_client.chat.completions.create(
@@ -70,9 +66,6 @@ class Chat(commands.Cog):
             await dm_channel.send(reply)
         except Exception as e:
             await dm_channel.send(f"Error: {e}")
-
-        if not is_dm:
-            await ctx.message.delete()
 
 
 async def setup(bot):
