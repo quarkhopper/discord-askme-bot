@@ -35,7 +35,10 @@ class MoodAnalyzer(commands.Cog):
         return None
 
     async def resolve_member(self, ctx, identifier):
-        """Tries to resolve a user by mention, name, or ID."""
+        """Tries to resolve a user by mention, name, or ID in a server context."""
+        if ctx.guild is None:
+            return None  # Prevents lookup in DMs, since there's no guild
+
         member = None
         user_id = self.extract_id(identifier)
 
