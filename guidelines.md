@@ -132,11 +132,12 @@ def setup(bot):
 - **All command feedback should be sent as a DM to the user**.
 - **A header message should be sent before command execution, including command name, channel, and timestamp**.
 - **If the DM is successfully sent, delete the original command message**.
-- **If the DM cannot be sent, display an error message in the channel, but do not send the full response there.**  
-- **Bot-generated command responses must never be posted in the server channel to prevent clutter.**  
-- **Errors should be sent as a DM first, falling back to an error message in the channel if DMs are disabled.**
-- **Role restriction failure messages should also be sent as DMs first, then fallback to the channel if needed.**
-- **All commands must include a usage statement in the docstring, explaining the command syntax and expected arguments.**
+- **If the DM cannot be sent, display an error message in the channel, but do not send the full response there**.  
+- **Bot-generated command responses must never be posted in the server channel to prevent clutter**.  
+- **Errors should be sent as a DM first, falling back to an error message in the channel if DMs are disabled**.  
+- **Role restriction failure messages should also be sent as DMs first, then fallback to the channel if needed**.  
+- **All commands must include a usage statement in the docstring, explaining the command syntax and expected arguments**.  
+- **The command message should always be immediately deleted after execution begins, regardless of processing time, to keep the server clean.**
 
 
 ---
