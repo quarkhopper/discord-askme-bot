@@ -14,7 +14,8 @@ class TalkSimulator(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    async def not_in_dm(self, ctx):
+    @staticmethod
+    async def not_in_dm(ctx):
         """Prevents the command from running in DMs."""
         if isinstance(ctx.channel, discord.DMChannel):
             try:
@@ -61,7 +62,7 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
-    @commands.check(not_in_dm)  # ✅ Prevents DM execution before parsing arguments
+    @commands.check(not_in_dm)  # ✅ Uses static method correctly
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
         """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
