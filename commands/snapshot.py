@@ -3,8 +3,8 @@ from discord.ext import commands
 import openai
 import os
 import asyncio
+import config  # ✅ Ensures logging and error handling works properly
 from commands.bot_errors import BotErrors  # Import the error handler
-import config  # Import shared config
 
 
 class Snapshot(commands.Cog):
@@ -40,13 +40,12 @@ class Snapshot(commands.Cog):
         )
 
     @commands.command()
-    @BotErrors.require_role("Vetted")  # ✅ Updated role requirement
-    async def snapshot(self, ctx, channel: discord.TextChannel = None):
-        """Generates an AI image based on the last 10 messages in a channel.
+    @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
+    async def snapshot(self, ctx):
+        """Generates an AI image based on the last 10 messages in the current channel.
 
         **Usage:**
-        `!snapshot` → Uses the current channel's last 10 messages.
-        `!snapshot #channel-name` → Uses the last 10 messages from the specified channel.
+        `!snapshot` → Uses the last 10 messages from the current channel.
 
         **Restrictions:**
         - ❌ **This command cannot be used in DMs.**
@@ -66,22 +65,25 @@ class Snapshot(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
-        if channel is None:
-            channel = ctx.channel
-
-        waiting_message = await ctx.send(f"📸 Capturing recent messages in {channel.mention}... Please wait.")
-
         messages = []
         try:
-            async for message in channel.history(limit=10):
+            async for message in ctx.channel.history(limit=10):
                 if not message.author.bot:
                     messages.append(f"{message.author.name}: {message.content}")
         except discord.Forbidden:
-            await waiting_message.edit(content=f"❌ I don’t have permission to read {channel.mention}.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(f"❌ I don’t have permission to read messages in {ctx.channel.name}.")
+            except discord.Forbidden:
+                await ctx.send(f"❌ I don’t have permission to read messages in {ctx.channel.name}.")
             return
 
         if not messages:
-            await waiting_message.edit(content=f"❌ No recent messages found in {channel.mention}.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(f"❌ No recent messages found in {ctx.channel.name}.")
+            except discord.Forbidden:
+                await ctx.send(f"❌ No recent messages found in {ctx.channel.name}.")
             return
 
         try:
