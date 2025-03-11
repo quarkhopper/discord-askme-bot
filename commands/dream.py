@@ -23,7 +23,7 @@ class DreamAnalysis(commands.Cog):
 
         # In Server Mode, enforce role restrictions and forbidden channel checks
         if not is_dm:
-            if not BotErrors.require_role("Vetted")(ctx):  # ✅ FIXED: Removed `await`
+            if not BotErrors.require_role("Vetted")(ctx):  # Ensure correct role handling
                 return
             if await BotErrors.check_forbidden_channel(ctx):
                 return
@@ -41,20 +41,24 @@ class DreamAnalysis(commands.Cog):
 
             config.logger.info(f"Dream analyzed: {description[:50]}...")
 
+            # Generate standard header message
+            header = (
+                f"📌 **Command Executed:** `!dream`\n"
+                f"📍 **Channel:** {ctx.channel.name if not is_dm else 'Direct Message'}\n"
+                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
+            )
+
             # Determine where to send the response
             if is_dm:
-                await ctx.send(f"💭 **Dream Interpretation:** {analysis}")
+                await ctx.send(header + f"💭 **Dream Interpretation:**\n{analysis}")
             else:
                 try:
                     dm_channel = await ctx.author.create_dm()
-                    await dm_channel.send(
-                        f"💭 **Dream Interpretation:**\n{analysis}\n\n_(Sent via DM for privacy)_"
-                    )
+                    await dm_channel.send(header + f"💭 **Dream Interpretation:**\n{analysis}\n\n_(Sent via DM for privacy)_")
                     await ctx.message.delete()
                 except discord.Forbidden:
                     await ctx.send(
-                        "💭 **Dream Interpretation:**\n" + analysis +
-                        "\n\n_(Could not send a DM. Please enable DMs from server members.)_"
+                        header + f"💭 **Dream Interpretation:**\n{analysis}\n\n_(Could not send a DM. Please enable DMs from server members.)_"
                     )
 
         except Exception as e:
