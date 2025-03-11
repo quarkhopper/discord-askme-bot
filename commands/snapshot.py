@@ -15,7 +15,13 @@ class Snapshot(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     async def generate_prompt(self, messages):
-        """Runs OpenAI text completion in a background thread."""
+        """Runs OpenAI text completion in a background thread with truncation."""
+        full_prompt = "\n".join(messages)
+
+        # ✅ Ensure prompt does not exceed 1000 characters
+        if len(full_prompt) > 1000:
+            full_prompt = full_prompt[:997] + "..."  # Truncate and add ellipsis
+
         return await asyncio.to_thread(
             self.openai_client.chat.completions.create,
             model="gpt-3.5-turbo",
@@ -26,7 +32,7 @@ class Snapshot(commands.Cog):
                                "based on the following Discord messages. The prompt should describe an artistic scene "
                                "that represents the conversation topics and themes in a unique and engaging way."
                 },
-                {"role": "user", "content": "\n".join(messages)}
+                {"role": "user", "content": full_prompt}
             ]
         )
 
@@ -60,6 +66,12 @@ class Snapshot(commands.Cog):
             except discord.Forbidden:
                 pass  # If DMs are disabled, fail silently
             return
+
+        # ✅ Immediately delete the command message to avoid clutter
+        try:
+            await ctx.message.delete()
+        except discord.NotFound:
+            pass  # If message was already deleted, ignore
 
         # Check if command is in a forbidden channel
         if await BotErrors.check_forbidden_channel(ctx):
@@ -108,9 +120,6 @@ class Snapshot(commands.Cog):
                 await dm_channel.send(execution_feedback)
             except discord.Forbidden:
                 await ctx.send("❌ Could not send a DM. Please enable DMs from server members.")
-
-            # ✅ Delete the command message in the server
-            await ctx.message.delete()
 
         except Exception as e:
             config.logger.error(f"Error generating snapshot: {e}")
