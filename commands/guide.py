@@ -17,7 +17,7 @@ class Guide(commands.Cog):
     async def guide(self, ctx):
         """Provides a brief summary of the 5 most active channels, based on recent activity.
         
-        **Note:** This command **only works in servers** and cannot be used in DMs.
+        **Note:** This command **only works in servers** and results are sent via DM.
         """
 
         # Prevent command execution in DMs
@@ -31,8 +31,18 @@ class Guide(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
-        # Send "Please wait..." message
-        waiting_message = await ctx.send("Fetching the most active channels... Please wait.")
+        # Attempt to send the execution header via DM
+        try:
+            dm_channel = await ctx.author.create_dm()
+            await dm_channel.send(
+                f"📌 **Command Executed:** `!guide`\n"
+                f"📍 **Server:** {ctx.guild.name}\n"
+                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
+            )
+            await ctx.message.delete()  # Delete command message after DM is sent
+        except discord.Forbidden:
+            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+            return  # Stop execution if DM cannot be sent
 
         time_threshold = datetime.utcnow() - timedelta(days=1)
         channel_activity = {}
@@ -64,7 +74,7 @@ class Guide(commands.Cog):
         )[:5]  # Get top 5 most active channels
 
         if not most_active_channels:
-            await waiting_message.edit(content="No active channels found in the last 24 hours.")
+            await dm_channel.send("No active channels found in the last 24 hours.")
             return
 
         guide_message = "**Here are the 5 most active channels!** 🔥\n\n"
@@ -99,11 +109,8 @@ class Guide(commands.Cog):
         max_length = 2000
         parts = [guide_message[i:i + max_length] for i in range(0, len(guide_message), max_length)]
 
-        for i, part in enumerate(parts):
-            if i == 0:
-                await waiting_message.edit(content=part)  # Edit "Please wait" message with first part
-            else:
-                await ctx.send(part)  # Send additional parts
+        for part in parts:
+            await dm_channel.send(part)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
