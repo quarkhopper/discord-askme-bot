@@ -105,7 +105,7 @@ class NounLibs(commands.Cog):
             story = response.choices[0].message.content.strip()
 
             # ✅ Step 3: Replace the placeholder "REPLACE-THIS-WORD" with the first user's noun
-            formatted_story = story.replace("REPLACE-THIS-WORD", f"**{user_noun}**")
+            formatted_story = story.replace("REPLACE-THIS-WORD", f"{user_noun}")
 
             # ✅ Step 4: DM the final story to both users
             message = (
