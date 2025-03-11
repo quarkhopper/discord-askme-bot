@@ -25,10 +25,10 @@ class TalkSimulator(commands.Cog):
             return False  # Prevents command execution
         return True
 
-    async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500):
-        """Fetches messages from a user, limited to 10 per channel, 
-        with a total cap of 500, without excluding inactive channels."""
+    async def fetch_user_messages(self, ctx, user: discord.Member, limit_per_channel=10, total_limit=500, max_chars=6000):
+        """Fetches messages from a user, with a total character cap of 6000."""
         messages = []
+        total_chars = 0
 
         for channel in ctx.guild.text_channels:
             if not channel.permissions_for(ctx.guild.me).read_messages:
@@ -39,11 +39,16 @@ class TalkSimulator(commands.Cog):
             try:
                 async for message in channel.history(limit=100, oldest_first=False):
                     if message.author == user:
-                        messages.append(message.content)
+                        msg_text = message.content.strip()
+                        if total_chars + len(msg_text) > max_chars:
+                            break  # Stop when character limit is reached
+
+                        messages.append(msg_text)
+                        total_chars += len(msg_text)
                         channel_message_count += 1
 
                     if len(messages) >= total_limit:
-                        return messages  # Stop if we've hit the total limit
+                        return messages  # Stop if we've hit the total message limit
 
                     if channel_message_count >= limit_per_channel:
                         break  # Stop fetching from this channel
@@ -65,7 +70,7 @@ class TalkSimulator(commands.Cog):
     @commands.check(not_in_dm)  # ✅ Prevents DM execution before parsing arguments
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
-        """Simulates a user's response based on their last 10 messages, using their vocabulary while allowing flexibility.
+        """Simulates a user's response based on their last messages, using their vocabulary while allowing flexibility.
 
         **Usage:**
         `!talkto @User What do you think about AI?`
@@ -112,13 +117,16 @@ class TalkSimulator(commands.Cog):
                 await dm_channel.send(f"⚠️ No messages found for {user.display_name}.")
                 return
 
+            # ✅ Ensure message history does not exceed 5000 characters (extra safety buffer)
+            conversation_history = "\n".join(f"- {msg}" for msg in past_messages)
+            if len(conversation_history) > 5000:
+                conversation_history = conversation_history[:4997] + "..."
+
             topics = {word for word in past_messages if len(word) > 4}
             vocabulary = {word for word in past_messages}
 
             relevant_prompt = f"Prioritize responding in a way related to these topics: {', '.join(topics)}."
             vocabulary_hint = f"Try to use words from this set: {', '.join(vocabulary)}, but additional words are allowed."
-
-            conversation_history = "\n".join(f"- {msg}" for msg in past_messages)
 
             prompt_text = f"""
             The following are messages from {user.display_name}:
