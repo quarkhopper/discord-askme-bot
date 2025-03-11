@@ -99,7 +99,7 @@ class MessageUtils(commands.Cog):
                 return
 
             # Corrected line:
-            deleted = await ctx.channel.purge(limit=count + 1)  # Deletes command + messages after match
+            deleted = await ctx.channel.purge(limit=count + 2)  # Deletes command + messages after match
             await ctx.send(f"✅ Cleared {len(deleted) - 1} messages after `{text}` in #{ctx.channel.name}.")
         except Exception as e:
             config.logger.error(f"Error clearing messages after match: {e}")
