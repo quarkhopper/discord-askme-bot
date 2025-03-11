@@ -74,10 +74,10 @@ class MessageUtils(commands.Cog):
 
     @commands.command()
     @BotErrors.require_role("Fun Police")  # ✅ Requires both "Fun Police"
-    @BotErrors.require_role("Vetted")  # ✅ and "Vetted" roles
+    @BotErrors.require_role("Vetted")      # ✅ and "Vetted" roles
     async def clearafter(self, ctx, *, text: str):
         """Clears all messages after a matched message.
-        
+
         **This command only works in servers.**  
 
         Usage:
@@ -98,8 +98,9 @@ class MessageUtils(commands.Cog):
                 await ctx.send("❌ No messages found containing the specified text.")
                 return
 
-            deleted = await ctx.channel.purge(limit=count + 2)  # Deletes after match + command message
-            await ctx.send(f"✅ Cleared {len(deleted)} messages after `{text}` in #{ctx.channel.name}.")
+            # Corrected line:
+            deleted = await ctx.channel.purge(limit=count + 1)  # Deletes command + messages after match
+            await ctx.send(f"✅ Cleared {len(deleted) - 1} messages after `{text}` in #{ctx.channel.name}.")
         except Exception as e:
             config.logger.error(f"Error clearing messages after match: {e}")
             await ctx.send("An error occurred while clearing messages.")
