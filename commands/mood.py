@@ -17,7 +17,7 @@ class MoodAnalyzer(commands.Cog):
         """Fetch the last `limit` messages from a specific user in the given channel."""
         if channel is None:
             channel = ctx.channel  # Default to the current channel
-        
+
         messages = []
         async for message in channel.history(limit=100):  # Search up to 100 messages for context
             if user is None or message.author == user:
@@ -48,7 +48,7 @@ class MoodAnalyzer(commands.Cog):
                     return None
         else:
             member = discord.utils.get(ctx.guild.members, name=identifier)
-        
+
         return member
 
     async def resolve_channel(self, ctx, identifier):
@@ -69,22 +69,33 @@ class MoodAnalyzer(commands.Cog):
         return channel
 
     @commands.command()
-    @BotErrors.require_role("Peoples")  # Restrict to users with "Peoples" role
+    @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.
         
-        Usage:
+        **Usage:**
         `!mood` → Analyzes the current channel.
         `!mood @User` → Analyzes @User's messages in the current channel.
         `!mood #general` → Analyzes messages in #general.
         `!mood @User #general` → Analyzes @User's messages in #general.
+
+        **Execution Feedback:**  
+        - Results are sent via DM.  
+        - If DM fails, an error message is sent in the channel.  
+        - The original command message is deleted in **server mode** after execution.  
         """
-        if config.is_forbidden_channel(ctx):
+
+        # Check for DM Mode
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        # Check if command is in a forbidden channel
+        if not is_dm and await BotErrors.check_forbidden_channel(ctx):
             return
 
         user = None
         channel = ctx.channel  # Default to current channel
 
+        # Resolve optional user and channel arguments
         for arg in args:
             resolved_user = await self.resolve_member(ctx, arg)
             if resolved_user:
@@ -96,13 +107,21 @@ class MoodAnalyzer(commands.Cog):
                 channel = resolved_channel
                 continue
 
-            # If neither user nor channel matched
-            await ctx.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
+            # If neither user nor channel matched, send a DM error and return
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
+            except discord.Forbidden:
+                await ctx.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
             return
 
         messages = await self.fetch_messages(ctx, user=user, channel=channel)
         if not messages:
-            await ctx.send("No messages found for the specified user or channel.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("No messages found for the specified user or channel.")
+            except discord.Forbidden:
+                await ctx.send("No messages found for the specified user or channel.")
             return
 
         prompt = (
@@ -122,11 +141,33 @@ class MoodAnalyzer(commands.Cog):
             
             mood_analysis = response.choices[0].message.content.strip()
             config.logger.info(f"Mood analysis result: {mood_analysis}")
-            await ctx.send(f"💡 Mood Analysis: {mood_analysis}")
+
+            # Prepare execution feedback message
+            execution_feedback = (
+                f"**Command Executed:** !mood\n"
+                f"**Channel:** {ctx.channel.name if not is_dm else 'Direct Message'}\n"
+                f"**Timestamp:** {ctx.message.created_at}\n\n"
+                f"💡 **Mood Analysis:**\n{mood_analysis}"
+            )
+
+            # Send response via DM
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send(execution_feedback)
+            except discord.Forbidden:
+                await ctx.send("Could not send a DM. Please enable DMs from server members.")
+
+            # Delete command message in server mode
+            if not is_dm:
+                await ctx.message.delete()
 
         except Exception as e:
             config.logger.error(f"Error analyzing mood: {e}")
-            await ctx.send("An error occurred while analyzing the mood.")
+            try:
+                dm_channel = ctx.author.dm_channel or await ctx.author.create_dm()
+                await dm_channel.send("An error occurred while analyzing the mood.")
+            except discord.Forbidden:
+                await ctx.send("An error occurred while analyzing the mood.")
 
 async def setup(bot):
     await bot.add_cog(MoodAnalyzer(bot))
