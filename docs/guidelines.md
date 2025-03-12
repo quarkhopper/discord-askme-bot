@@ -79,6 +79,20 @@ Each command file follows a structured format.
 
 
 ## Standard Command Guidelines
+
+### Command Execution Mode Tagging
+- Each command must specify its execution mode as `server`, `dm`, or `both`.
+- This tagging should be included in the command file’s setup function using:
+  ```python
+  async def setup(bot):
+      await bot.add_cog(CommandClass(bot))
+
+      command = bot.get_command("command_name")
+      if command:
+          command.command_mode = "server"  # Can be "server", "dm", or "both"
+  ```
+- This ensures uniform execution behavior across different environments.
+
 - All commands should be defined inside Cogs.
 - Use @commands.command() to define commands.
 - Implement role restrictions where necessary (see Section 3.2).
