@@ -38,19 +38,19 @@ class ConfigManager(commands.Cog):
             return
 
         async for message in channel.history(limit=1):
-            await self.process_config_update(message.content)
+            await self.process_config_update(message)
 
     @commands.Cog.listener()
     async def on_message(self, message):
         """Detects new messages in #bot-config and updates config."""
         if message.channel.id == self.config_channel_id and message.author != self.bot.user:
-            await self.process_config_update(message.content)
+            await self.process_config_update(message)
     
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         """Detects edits to messages in #bot-config and updates config."""
         if after.channel.id == self.config_channel_id:
-            await self.process_config_update(after.content)
+            await self.process_config_update(after)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
@@ -59,14 +59,47 @@ class ConfigManager(commands.Cog):
             self.command_config = {}
             print("[ConfigManager] Configuration deleted. Using empty config.")
 
-    async def process_config_update(self, content):
-        """Parses and updates the command configuration from JSON content."""
+    async def process_config_update(self, message):
+        """Parses and updates the command configuration from a JSON message, fixing issues when necessary."""
+        content = message.content.strip()
         try:
-            new_config = json.loads(content)
+            new_config = json.loads(content)  # Try parsing first
             self.command_config = new_config  # Replace existing config
             print("[ConfigManager] Configuration updated successfully.")
         except json.JSONDecodeError:
-            print("[ConfigManager] Failed to parse JSON. Check the format in #bot-config.")
+            print("[ConfigManager] Invalid JSON detected. Attempting to correct format...")
+
+            # Attempt to fix JSON formatting
+            fixed_content = self.fix_json_format(content)
+            if fixed_content:
+                try:
+                    corrected_config = json.loads(fixed_content)  # Verify corrected JSON
+                    self.command_config = corrected_config  # Apply the corrected config
+                    print("[ConfigManager] JSON format corrected and configuration updated.")
+
+                    # Edit the original message to update with fixed JSON
+                    await message.edit(content=f"```json\n{fixed_content}\n```")
+                    print("[ConfigManager] Updated #bot-config with corrected JSON.")
+                except json.JSONDecodeError:
+                    print("[ConfigManager] Automatic correction failed. Manual review needed.")
+            else:
+                print("[ConfigManager] Could not generate a corrected JSON format.")
+
+    def fix_json_format(self, raw_json):
+        """Attempts to fix common JSON formatting issues."""
+        try:
+            parsed_json = json.loads(raw_json)  # If it's already valid, return as formatted string
+        except json.JSONDecodeError:
+            # Attempt simple fixes (e.g., replacing smart quotes, fixing commas)
+            raw_json = raw_json.replace("“", "\"").replace("”", "\"")  # Fix smart quotes
+            raw_json = raw_json.replace("’", "'").replace("‘", "'")  # Fix apostrophes
+
+            try:
+                parsed_json = json.loads(raw_json)  # Retry parsing
+            except json.JSONDecodeError:
+                return None  # If still broken, give up
+
+        return json.dumps(parsed_json, indent=4)  # Return properly formatted JSON
 
     def get_command_whitelist(self, command_name):
         """Returns the list of allowed channels for a given command."""
