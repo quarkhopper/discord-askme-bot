@@ -57,19 +57,29 @@ class Catchup(commands.Cog):
         for channel_name in allowed_channels:
             channel = discord.utils.get(ctx.guild.text_channels, name=channel_name)
             if not channel:
+                print(f"[Debug] Skipping channel {channel_name}: Not found")
                 continue  # Skip if the channel doesn't exist
 
             try:
+                messages_collected = 0
                 async for message in channel.history(after=time_threshold, limit=100):
                     if message.author.bot:
                         continue  
+
+                    # Log each retrieved message for debugging
+                    print(f"[Debug] Collected from {channel.name}: {message.author.display_name}: {message.content}")
 
                     # Ensure categories exist before appending messages
                     if "general" not in user_messages[message.author.display_name]:
                         user_messages[message.author.display_name]["general"] = []
 
                     user_messages[message.author.display_name]["general"].append(message.content)
+                    messages_collected += 1
+
+                print(f"[Debug] Total messages collected from {channel.name}: {messages_collected}")
+
             except discord.Forbidden:
+                print(f"[Debug] No permission to read {channel.name}")
                 continue  
 
         if not user_messages:
