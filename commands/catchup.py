@@ -7,7 +7,6 @@ import datetime
 from collections import defaultdict
 from commands.bot_errors import BotErrors  # Import the error handler
 from commands.command_utils import command_mode
-print(command_mode)
 
 class Catchup(commands.Cog):
     """Cog for summarizing recent events across all channels or within a single channel."""

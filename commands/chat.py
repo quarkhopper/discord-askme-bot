@@ -13,8 +13,8 @@ class Chat(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
-    @commands.command()
     @command_mode("both")
+    @commands.command()
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
         
