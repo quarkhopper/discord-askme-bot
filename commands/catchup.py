@@ -69,29 +69,42 @@ class Catchup(commands.Cog):
                 if not messages:
                     continue  # Skip empty channels
 
-                # Generate a concise, actionable summary
-                response = self.openai_client.chat.completions.create(
+                # **First Pass: Generate a concise, actionable summary**
+                response1 = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
                             "Summarize the following Discord messages into at most **three sentences**. "
                             "Ignore trivial or unimportant discussions. "
-                            "Only include conversations that require engagement, support, or meaningful discussion. "
-                            "If there is nothing important, return an empty response."},
+                            "Only include conversations that require engagement, support, or meaningful discussion."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
-                channel_summary = response.choices[0].message.content.strip()
+                raw_summary = response1.choices[0].message.content.strip()
 
-                # If the summary is empty or generic, skip this channel
-                if not channel_summary or channel_summary.lower() in ["no important discussions.", "nothing significant.", ""]:
-                    continue
+                # **Second Pass: Validate and refine the summary**
+                response2 = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": 
+                            "Evaluate the following summary of a Discord conversation. "
+                            "1) If the summary is meaningful and provides useful insights, keep it as is. "
+                            "2) If the summary is lacking in detail but important discussions took place, expand it to make it clearer. "
+                            "3) If the summary contains no meaningful discussion, return 'IGNORE' with no other content."},
+                        {"role": "user", "content": raw_summary}
+                    ]
+                )
+                refined_summary = response2.choices[0].message.content.strip()
+
+                # If the AI returns "IGNORE", skip this channel
+                if refined_summary.upper() == "IGNORE":
+                    continue  # Do not include this channel in the final summary
 
                 # Store this for the final summary
-                overall_summaries.append(f"📢 **{channel.name} Summary:** {channel_summary}")
+                overall_summaries.append(f"📢 **{channel.name} Summary:** {refined_summary}")
 
                 # Send per-channel summary immediately
-                await ctx.author.send(f"📢 **Summary for `#{channel.name}`:**\n{channel_summary}")
+                await ctx.author.send(f"📢 **Summary for `#{channel.name}`:**\n{refined_summary}")
 
             except discord.Forbidden:
                 continue  
