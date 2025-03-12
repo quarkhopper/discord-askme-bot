@@ -13,7 +13,6 @@ class Catchup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.config_manager = bot.get_cog("ConfigManager")
 
     @commands.command()
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
@@ -29,8 +28,14 @@ class Catchup(commands.Cog):
             await ctx.send("❌ This command can only be used in a server.")
             return
 
+        # Fetch the config manager dynamically
+        config_manager = self.bot.get_cog("ConfigManager")
+        if not config_manager:
+            await ctx.send("⚠️ Configuration system is not available. Please try again later.")
+            return
+
         # Fetch allowed channels from config_manager
-        allowed_channels = self.config_manager.get_command_whitelist("catchup")
+        allowed_channels = await config_manager.get_command_whitelist("catchup")
 
         if channel:
             # If a specific channel is provided, check if it's whitelisted
@@ -53,7 +58,7 @@ class Catchup(commands.Cog):
                 return
 
             try:
-                response = self.openai_client.chat.completions.create(
+                response = config_manager.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "Summarize the following messages by topic."},
@@ -97,7 +102,7 @@ class Catchup(commands.Cog):
                 formatted_messages.pop(0)
 
             try:
-                response = self.openai_client.chat.completions.create(
+                response = config_manager.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
