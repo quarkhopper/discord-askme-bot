@@ -8,23 +8,35 @@ from collections import defaultdict
 from commands.bot_errors import BotErrors  # Import the error handler
 
 class Catchup(commands.Cog):
-    """Cog for summarizing recent events across all channels or within a single channel."""
+    """Cog for summarizing recent events across selected channels."""
 
     def __init__(self, bot):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+    async def eligible_channels(self, guild):
+        """Returns a list of channels that have a pinned "+catchup" message."""
+        eligible = []
+        for channel in guild.text_channels:
+            try:
+                async for message in channel.pins():
+                    if message.content.strip() == "+catchup":
+                        eligible.append(channel)
+                        break
+            except discord.Forbidden:
+                continue  # Ignore channels where the bot lacks permissions
+        return eligible
+
     @commands.command()
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def catchup(self, ctx, channel: discord.TextChannel = None):
-        """Summarizes activity across all channels or within a single specified channel.
+        """Summarizes activity within eligible channels or a specified channel.
         
         Usage:
-        `!catchup` → Summarizes recent discussions across all channels, prioritizing the most critical life events.
-        `!catchup #channel` → Summarizes discussions in the specified channel, grouping messages by topic.
+        `!catchup` → Summarizes recent discussions across eligible channels.
+        `!catchup #channel` → Summarizes discussions in the specified channel.
         """
 
-        # Prevent command execution in DMs
         if not ctx.guild:
             await ctx.send("❌ This command can only be used in a server.")
             return
@@ -37,17 +49,22 @@ class Catchup(commands.Cog):
             dm_channel = await ctx.author.create_dm()
             await dm_channel.send(
                 f"📌 **Command Executed:** `!catchup`\n"
-                f"📍 **Channel:** {channel.mention if channel else 'All Channels'}\n"
+                f"📍 **Channel:** {channel.mention if channel else 'Eligible Channels'}\n"
                 f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
             )
-            await ctx.message.delete()  # Delete command message after DM is sent
+            await ctx.message.delete()
         except discord.Forbidden:
             await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
-            return  # Stop execution if DM cannot be sent
+            return
 
         time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
         if channel:
+            eligible = await self.eligible_channels(ctx.guild)
+            if channel not in eligible:
+                await dm_channel.send(f"⚠️ {channel.mention} is not an eligible channel for `!catchup`. ")
+                return
+
             messages = []
             try:
                 async for message in channel.history(after=time_threshold, limit=200):
@@ -65,7 +82,7 @@ class Catchup(commands.Cog):
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages from a single channel, ensuring that each topic grouping is meaningful and distinct. Avoid placing unrelated messages under incorrect headings."},
+                        {"role": "system", "content": "Summarize the following messages by topic."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
@@ -74,13 +91,15 @@ class Catchup(commands.Cog):
             except Exception as e:
                 await dm_channel.send(f"Error generating summary: {e}")
         else:
-            user_messages = defaultdict(list)
-            for ch in ctx.guild.text_channels:
+            eligible_channels = await self.eligible_channels(ctx.guild)
+            user_messages = defaultdict(lambda: {"medical": [], "distress": [], "stress": [], "positive": []})
+
+            for ch in eligible_channels:
                 try:
                     async for message in ch.history(after=time_threshold, limit=100):
                         if message.author.bot:
                             continue  
-                        user_messages[message.author.display_name].append(message.content)
+                        user_messages[message.author.display_name]["general"].append(message.content)
                 except discord.Forbidden:
                     continue  
 
@@ -88,7 +107,12 @@ class Catchup(commands.Cog):
                 await dm_channel.send("No significant messages in the past 24 hours.")
                 return
 
-            formatted_messages = [f"{user}: " + " || ".join(messages) for user, messages in user_messages.items()]
+            formatted_messages = []
+            for user, categories in user_messages.items():
+                for category, messages in categories.items():
+                    if messages:
+                        formatted_messages.append(f"{user}: {messages[0]}")
+            
             token_limit = 12000  
             while sum(len(msg.split()) for msg in formatted_messages) > token_limit and len(formatted_messages) > 1:
                 formatted_messages.pop(0)
@@ -99,11 +123,11 @@ class Catchup(commands.Cog):
                     messages=[
                         {"role": "system", "content": 
                             "Summarize the following Discord messages in a structured format with **four distinct categories**: \n"
-                            "1) **Medical emergencies, crises, or major loss** – These should always be prioritized first. \n"
-                            "2) **Deep emotional distress, relapses, or mental health struggles** – These include severe emotional challenges, recovery struggles, and urgent support needs. \n"
-                            "3) **General stressors** – Cover minor frustrations, work stress, sleep issues, and common day-to-day struggles. \n"
-                            "4) **Positive news and miscellaneous updates** – Include celebrations, achievements, lighthearted moments, casual discussions, and general check-ins.\n"
-                            "Ensure messages are categorized correctly, and avoid placing positive updates in stressful categories."
+                            "1) **Medical emergencies, crises, or major loss** – Prioritized first. \n"
+                            "2) **Deep emotional distress, relapses, or mental health struggles** – Urgent emotional challenges. \n"
+                            "3) **General stressors** – Minor frustrations, work stress, sleep issues. \n"
+                            "4) **Positive news and miscellaneous updates** – Celebrations, achievements, casual moments."
+                            "Ensure only one bullet point per user per category."
                         },
                         {"role": "user", "content": "\n".join(formatted_messages)}
                     ]
@@ -116,7 +140,6 @@ class Catchup(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Catchup(bot))
-    
     command = bot.get_command("catchup")
     if command:
         command.command_mode = "server"
