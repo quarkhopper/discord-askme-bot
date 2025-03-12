@@ -49,12 +49,13 @@ class CommandsHelp(commands.Cog):
             return
 
         # Filter commands by mode
-        # commands_list = sorted(
-        #     [cmd for cmd in self.bot.commands if hasattr(cmd, "command_mode") and cmd.command_mode in ["both", mode_filter]],
-        #     key=lambda c: c.name
-        # )
-        # the above was commented out only for debug and replaced with the line below
-        commands_list = sorted(self.bot.commands, key=lambda c: c.name)
+        commands_list = sorted(
+            [
+                cmd for cmd in self.bot.commands 
+                if getattr(cmd, "command_mode", "both") in ["both", mode_filter]
+            ],
+            key=lambda c: c.name
+        )
 
         # Generate list of commands
         if not commands_list:
