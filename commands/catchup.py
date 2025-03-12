@@ -76,6 +76,8 @@ class Catchup(commands.Cog):
                         {"role": "system", "content": 
                             "Summarize the following Discord messages into at most **three sentences**. "
                             "Ignore trivial or unimportant discussions. "
+                            "Ignore single-message exchanges unless they spark a broader discussion. "
+                            "Ignore solo updates unless they received responses or engagement. "
                             "Only include conversations that require engagement, support, or meaningful discussion."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
@@ -97,14 +99,7 @@ class Catchup(commands.Cog):
                 refined_summary = response2.choices[0].message.content.strip()
 
                 # **NEW: Filter out non-engaging summaries**
-                meaningless_phrases = [
-                    "someone responded with",  # Avoids pointless message-only responses
-                    "a user shared a random comment",  # Prevents irrelevant chatter
-                    "a casual exchange happened",  # Filters out light banter
-                    "someone mentioned a personal activity without discussion"  # Stops irrelevant life updates
-                ]
-                
-                if refined_summary.upper() == "IGNORE" or any(phrase in refined_summary.lower() for phrase in meaningless_phrases):
+                if refined_summary.upper() == "IGNORE":
                     continue  # Skip this channel
 
                 # Store this for the final summary
