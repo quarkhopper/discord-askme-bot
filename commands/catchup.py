@@ -96,9 +96,16 @@ class Catchup(commands.Cog):
                 )
                 refined_summary = response2.choices[0].message.content.strip()
 
-                # If the AI returns "IGNORE", skip this channel
-                if refined_summary.upper() == "IGNORE":
-                    continue  # Do not include this channel in the final summary
+                # **NEW: Filter out non-engaging summaries**
+                meaningless_phrases = [
+                    "someone responded with",  # Avoids pointless message-only responses
+                    "a user shared a random comment",  # Prevents irrelevant chatter
+                    "a casual exchange happened",  # Filters out light banter
+                    "someone mentioned a personal activity without discussion"  # Stops irrelevant life updates
+                ]
+                
+                if refined_summary.upper() == "IGNORE" or any(phrase in refined_summary.lower() for phrase in meaningless_phrases):
+                    continue  # Skip this channel
 
                 # Store this for the final summary
                 overall_summaries.append(f"📢 **{channel.name} Summary:** {refined_summary}")
