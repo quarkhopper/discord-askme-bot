@@ -166,3 +166,7 @@ TalkSimulator.talkto.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(TalkSimulator(bot))
+
+    command = bot.get_command("talkto")
+    if command:
+        command.command_mode = "server"

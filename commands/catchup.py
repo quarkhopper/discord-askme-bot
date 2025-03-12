@@ -114,7 +114,9 @@ class Catchup(commands.Cog):
             except Exception as e:
                 await dm_channel.send(f"Error generating summary: {e}")
 
-Catchup.catchup.command_mode = "server"
-
 async def setup(bot):
     await bot.add_cog(Catchup(bot))
+    
+    command = bot.get_command("catchup")
+    if command:
+        command.command_mode = "server"

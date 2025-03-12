@@ -167,7 +167,10 @@ class MoodAnalyzer(commands.Cog):
             except discord.Forbidden:
                 await ctx.send("An error occurred while analyzing the mood.")
 
-MoodAnalyzer.mood.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(MoodAnalyzer(bot))
+
+    command = bot.get_command("mood")
+    if command:
+        command.command_mode = "server"

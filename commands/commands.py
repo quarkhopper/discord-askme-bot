@@ -77,8 +77,9 @@ class CommandsHelp(commands.Cog):
         await ctx.send(f"DEBUG:\n```{debug_info}```")
 
 
-# ✅ Manually set `command_mode`
-CommandsHelp.list_commands.command_mode = "both"
-
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))
+
+    command = bot.get_command("list_commands")
+    if command:
+        command.command_mode = "both"

@@ -65,7 +65,9 @@ class DreamAnalysis(commands.Cog):
             config.logger.error(f"Error analyzing dream: {e}")
             await ctx.send("An error occurred while analyzing the dream.")
 
-DreamAnalysis.dream.command_mode = "both"
-
 async def setup(bot):
     await bot.add_cog(DreamAnalysis(bot))
+
+    command = bot.get_command("dream")
+    if command:
+        command.command_mode = "both"

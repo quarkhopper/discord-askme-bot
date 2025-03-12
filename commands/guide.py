@@ -137,7 +137,10 @@ class Guide(commands.Cog):
         except discord.Forbidden:
             print(f"Could not send a DM to {member.name}.")
 
-Guide.guide.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(Guide(bot))
+
+    command = bot.get_command("guide")
+    if command:
+        command.command_mode = "server"

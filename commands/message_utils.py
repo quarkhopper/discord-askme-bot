@@ -71,9 +71,14 @@ class MessageUtils(commands.Cog):
             await ctx.send("An error occurred while searching for messages.")
             return None
 
-MessageUtils.clear.command_mode = "server"
-MessageUtils.match.command_mode = "both"
-
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))
+    
+    command = bot.get_command("clear")
+    if command:
+        command.command_mode = "server"
+
+    command = bot.get_command("match")
+    if command:
+        command.command_mode = "both"

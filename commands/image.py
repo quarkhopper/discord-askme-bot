@@ -60,7 +60,10 @@ class ImageGen(commands.Cog):
             config.logger.error(f"Error generating image: {e}")
             await dm_channel.send("An error occurred while generating the image.")
 
-ImageGen.image.command_mode = "both"
 
 async def setup(bot):
     await bot.add_cog(ImageGen(bot))
+
+    command = bot.get_command("image")
+    if command:
+        command.command_mode = "both"

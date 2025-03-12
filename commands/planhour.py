@@ -91,7 +91,10 @@ class PlanHour(commands.Cog):
             except discord.Forbidden:
                 await ctx.send("An error occurred while planning your next hour.")
 
-PlanHour.planhour.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(PlanHour(bot))
+
+    command = bot.get_command("planhour")
+    if command:
+        command.command_mode = "server"

@@ -91,7 +91,9 @@ class PlanLife(commands.Cog):
             except discord.Forbidden:
                 await ctx.send("An error occurred while planning your lifelong mission.")
 
-PlanLife.planlife.command_mode = "server"
-
 async def setup(bot):
     await bot.add_cog(PlanLife(bot))
+
+    command = bot.get_command("planlife")
+    if command:
+        command.command_mode = "server"
