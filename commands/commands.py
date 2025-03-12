@@ -3,6 +3,14 @@ from discord.ext import commands
 import config  # Import shared config
 from commands.bot_errors import BotErrors  # Import error handling
 
+# Custom decorator to tag command execution modes
+def command_mode(mode: str):
+    """Decorator to set the execution mode for a command (server, dm, or both)."""
+    def decorator(func):
+        func.command_mode = mode
+        return func
+    return decorator
+
 class CommandsHelp(commands.Cog):
     """Cog that lists all available commands and their arguments."""
 
@@ -10,10 +18,11 @@ class CommandsHelp(commands.Cog):
         self.bot = bot
 
     @commands.command(name="commands")
+    @command_mode("both")  # Available in both DM and Server Mode
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def list_commands(self, ctx, command_name: str = None):
         """Displays a list of available commands, or detailed help for a specific command.
-        
+
         Usage:
         `!commands` → Lists all available commands in the bot.
         `!commands <command_name>` → Provides detailed usage for a specific command.
@@ -21,26 +30,20 @@ class CommandsHelp(commands.Cog):
         if await BotErrors.check_forbidden_channel(ctx):
             return
 
-        # Ensure channel_name is defined before using it
-        if isinstance(ctx.channel, discord.DMChannel):
-            dm_channel = ctx.channel  # Already in a DM, use the existing DM channel
-            channel_name = "Direct Message"
-        else:
-            channel_name = ctx.channel.name  # Set channel name for server mode
-            try:
-                dm_channel = await ctx.author.create_dm()
-                await dm_channel.send(
-                    f"**Command Executed:** commands\n**Channel:** {channel_name}\n**Timestamp:** {ctx.message.created_at}"
-                )
-                await ctx.message.delete()
-            except discord.Forbidden:
-                await ctx.send("Could not send a DM. Please enable DMs from server members.")
-                return
-            
+        # Determine execution mode
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        mode_filter = "dm" if is_dm else "server"
+
+        # If a command name is provided, display details for that command
         if command_name:
             command = self.bot.get_command(command_name)
             if not command:
-                await dm_channel.send(f"⚠️ No command named `{command_name}` found.")
+                await ctx.send(f"⚠️ No command named `{command_name}` found.")  # Exception: Allow this to display in server
+                return
+
+            # Ensure command matches the correct mode
+            if hasattr(command, "command_mode") and command.command_mode not in ["both", mode_filter]:
+                await ctx.send(f"⚠️ The command `!{command_name}` is not available in this mode.")  # Exception: Allow in server
                 return
 
             usage = f"**`!{command.name}`**\n"
@@ -51,17 +54,22 @@ class CommandsHelp(commands.Cog):
             if params:
                 usage += f"**Usage:** `!{command.name} {' '.join(params)}`\n"
 
-            await dm_channel.send(usage)
+            await ctx.send(usage)  # Exception: Display directly in server
             return
 
-        commands_list = sorted(self.bot.commands, key=lambda c: c.name)
-        help_text = "**Available Commands (A-Z):**\n"
+        # Filter commands by mode
+        commands_list = sorted(
+            [cmd for cmd in self.bot.commands if hasattr(cmd, "command_mode") and cmd.command_mode in ["both", mode_filter]],
+            key=lambda c: c.name
+        )
+
+        help_text = "**Available Commands:**\n"
 
         for command in commands_list:
             if command.help:
                 help_text += f"🔹 **`!{command.name}`** - {command.help.splitlines()[0]}\n"
 
-        await dm_channel.send(help_text)
+        await ctx.send(help_text)  # Exception: Display directly in server
 
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))
