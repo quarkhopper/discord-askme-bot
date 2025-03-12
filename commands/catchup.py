@@ -76,7 +76,7 @@ class Catchup(commands.Cog):
                         {"role": "system", "content": 
                             "Summarize the following Discord messages into at most **three sentences**. "
                             "Ignore trivial or unimportant discussions. "
-                            "Ignore single-message exchanges unless they spark a broader discussion. "
+                            "Ignore single-message responses such as 'Fair, tbh' or similar standalone reactions. "
                             "Ignore solo updates unless they received responses or engagement. "
                             "Only include conversations that require engagement, support, or meaningful discussion."},
                         {"role": "user", "content": "\n".join(messages)}
