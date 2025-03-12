@@ -23,11 +23,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     config.logger.info(f"Logged in as {bot.user}")
 
-# Load all Cogs from the 'commands' directory
+# Load all Cogs from the 'commands' directory, excluding utility files
 async def load_cogs():
     commands_dir = pathlib.Path("commands")
     if commands_dir.exists():
         for command_file in commands_dir.glob("*.py"):
+            if command_file.stem in ["command_utils", "__init__"]:  # ⛔ Exclude utility files
+                continue
+            
             module_name = f"commands.{command_file.stem}"
             try:
                 await bot.load_extension(module_name)
