@@ -23,6 +23,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     config.logger.info(f"Logged in as {bot.user}")
 
+    # DEBUG: Print all loaded commands
+    available_commands = [cmd.name for cmd in bot.commands]
+    print(f"Available commands: {available_commands}")  # Logs to Railway
+
 # Load all Cogs from the 'commands' directory
 async def load_cogs():
     commands_dir = pathlib.Path("commands")
