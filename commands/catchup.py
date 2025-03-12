@@ -92,8 +92,8 @@ class Catchup(commands.Cog):
                 if messages:
                     formatted_messages.append(f"{user}: {messages[0]}")
 
-        # Log what is actually being sent
-        print(f"[Debug] Messages collected for summary:\n{formatted_messages}")
+        # Log what is actually being sent to OpenAI
+        print(f"[Debug] Final messages sent to OpenAI:\n{formatted_messages}")
 
         token_limit = 12000  
         while sum(len(msg.split()) for msg in formatted_messages) > token_limit and len(formatted_messages) > 1:
