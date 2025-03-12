@@ -78,8 +78,7 @@ class Catchup(commands.Cog):
                             "Ignore trivial or unimportant discussions. "
                             "Ignore single-message responses such as 'Fair, tbh' or similar standalone reactions. "
                             "Ignore solo updates unless they received responses or engagement. "
-                            "If there is **nothing important to summarize, return only the word 'IGNORE'.** "
-                            "**Do not generate any explanation or meta-comment about the summary.**"},
+                            "If there is **nothing important to summarize, return only the word 'IGNORE'**."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
@@ -93,8 +92,7 @@ class Catchup(commands.Cog):
                             "Rewrite the following summary to ensure it is **concise yet informative**. "
                             "Ensure all key points are captured, removing unnecessary details. "
                             "If the summary is already strong, keep it nearly the same. "
-                            "If the summary is completely unimportant, return only the word 'IGNORE'. "
-                            "**Do not generate any meta-commentary about the summary itself.**"},
+                            "If the summary is completely unimportant, return only the word 'IGNORE'."},
                         {"role": "user", "content": raw_summary}
                     ]
                 )
@@ -115,30 +113,12 @@ class Catchup(commands.Cog):
             except Exception as e:
                 await ctx.author.send(f"❌ Error summarizing `#{channel_name}`: {e}")
 
-        # Send the final overall summary **in chunks** if needed
+        # Send the final overall summary
         if overall_summaries:
             final_summary = "\n\n".join(overall_summaries)
-
-            # **NEW: Split messages into 2000-character chunks**
-            def split_into_chunks(text, max_length=2000):
-                chunks = []
-                while len(text) > max_length:
-                    split_index = text[:max_length].rfind("\n")  # Try to break at the last newline
-                    if split_index == -1:
-                        split_index = max_length  # If no newline found, break at max length
-                    chunks.append(text[:split_index])
-                    text = text[split_index:].strip()
-                chunks.append(text)  # Append remaining part
-                return chunks
-
-            for chunk in split_into_chunks(final_summary):
-                await ctx.author.send(chunk)  # Send each chunk separately
-
+            await ctx.author.send(f"📜 **Final Catchup Summary:**\n{final_summary}")
         else:
             await ctx.author.send("✅ **`!catchup` complete. No significant discussions found.**")
-
-        # **NEW: Send a final confirmation message**
-        await ctx.author.send("✅ **`!catchup` has finished processing. You're up to date!**")
 
 async def setup(bot):
     await bot.add_cog(Catchup(bot))
