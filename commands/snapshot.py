@@ -5,7 +5,7 @@ import os
 import asyncio
 import config  # ✅ Ensures logging and error handling works properly
 from commands.bot_errors import BotErrors  # Import the error handler
-
+from commands.command_utils import command_mode
 
 class Snapshot(commands.Cog):
     """Cog for generating an AI image based on recent channel messages."""
@@ -54,6 +54,7 @@ class Snapshot(commands.Cog):
         )
 
     @commands.command()
+    @command_mode("server")
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def snapshot(self, ctx):
         """Generates an AI image based on the last 10 messages in the current channel.

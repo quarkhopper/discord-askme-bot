@@ -4,7 +4,7 @@ import openai
 import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
-
+from commands.command_utils import command_mode
 
 class Chat(commands.Cog):
     """Cog for handling AI chat commands."""
@@ -14,6 +14,7 @@ class Chat(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @command_mode("both")
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
         

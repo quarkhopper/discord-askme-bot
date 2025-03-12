@@ -5,6 +5,7 @@ import config  # Import shared config
 import os
 import re  # Import regex module to extract IDs from mentions
 from commands.bot_errors import BotErrors  # Import the error handler
+from commands.command_utils import command_mode
 
 class MoodAnalyzer(commands.Cog):
     """Cog for analyzing the mood of a user or recent messages in a channel."""
@@ -75,6 +76,7 @@ class MoodAnalyzer(commands.Cog):
         return channel
 
     @commands.command()
+    @command_mode("server")
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def mood(self, ctx, *args):
         """Analyze the mood of a specific user or the last 10 messages in the specified channel.

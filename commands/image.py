@@ -4,6 +4,7 @@ import openai
 import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
+from commands.command_utils import command_mode
 
 class ImageGen(commands.Cog):
     """Cog for generating images using OpenAI's DALL·E API."""
@@ -13,6 +14,7 @@ class ImageGen(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @command_mode("both")
     @BotErrors.require_role("Vetted")  # ✅ Enforce correct role
     async def image(self, ctx, *, prompt: str):
         """Generate an image using OpenAI's DALL·E API.

@@ -2,14 +2,7 @@ import discord
 from discord.ext import commands
 import config  # Import shared config
 from commands.bot_errors import BotErrors  # Import error handling
-
-# Custom decorator to tag command execution modes
-def command_mode(mode: str):
-    """Decorator to set the execution mode for a command (server, dm, or both)."""
-    def decorator(func):
-        func.command_mode = mode
-        return func
-    return decorator
+from commands.command_utils import command_mode
 
 class CommandsHelp(commands.Cog):
     """Cog that lists all available commands and their arguments."""

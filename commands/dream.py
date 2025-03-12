@@ -4,6 +4,7 @@ import openai
 import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
+from commands.command_utils import command_mode
 
 class DreamAnalysis(commands.Cog):
     """Cog for analyzing and interpreting dreams."""
@@ -13,6 +14,7 @@ class DreamAnalysis(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
+    @command_mode("both")
     async def dream(self, ctx, *, description: str):
         """Analyze a dream and provide an interpretation.
         

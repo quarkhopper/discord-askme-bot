@@ -4,6 +4,7 @@ import openai
 import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
+from commands.command_utils import command_mode
 
 class PlanLife(commands.Cog):
     """Cog for generating an exaggerated but semi-realistic lifelong mission based on recent messages."""
@@ -23,6 +24,7 @@ class PlanLife(commands.Cog):
         return messages
 
     @commands.command()
+    @command_mode("server")
     @BotErrors.require_role("Vetted")  # ✅ Updated to follow the latest spec
     async def planlife(self, ctx):
         """Generates a wildly exaggerated but somewhat realistic lifelong mission based on recent messages.

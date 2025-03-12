@@ -6,7 +6,7 @@ import os
 import datetime
 from collections import defaultdict
 from commands.bot_errors import BotErrors  # Import the error handler
-
+from commands.command_utils import command_mode
 
 class Catchup(commands.Cog):
     """Cog for summarizing recent events across all channels or within a single channel."""
@@ -16,6 +16,7 @@ class Catchup(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     @commands.command()
+    @command_mode("server")
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def catchup(self, ctx, channel: discord.TextChannel = None):
         """Summarizes activity across all channels or within a single specified channel.

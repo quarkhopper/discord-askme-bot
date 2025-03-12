@@ -4,7 +4,7 @@ import openai
 import os
 from datetime import datetime, timedelta
 from commands.bot_errors import BotErrors  # Import the error handler
-
+from commands.command_utils import command_mode
 
 class Guide(commands.Cog):
     """Cog for providing a focused and concise server guide."""
@@ -14,6 +14,7 @@ class Guide(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     @commands.command()
+    @command_mode("server")
     async def guide(self, ctx):
         """Provides a brief summary of the 5 most active channels, based on recent activity.
         
