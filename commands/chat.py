@@ -47,7 +47,6 @@ class Chat(commands.Cog):
             await wait_message.delete()
             await ctx.send(f"⚠️ An error occurred: {e}")
 
-# ✅ Manually set command mode to "server" only
 Chat.chat.command_mode = "server"
 
 async def setup(bot):

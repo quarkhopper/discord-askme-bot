@@ -1,48 +1,45 @@
 import asyncio
 import discord
-import openai
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
-import config  # Import shared config
+import config  # shared config
 import pathlib
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client with the latest API format
-openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# Discord bot setup
+# Create bot instance (essential)
 intents = discord.Intents.default()
-intents.message_content = True  # Allows access to message content
+intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Log when bot is ready
+# Initialize OpenAI client if needed (use your pinned version)
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+
 @bot.event
 async def on_ready():
     config.logger.info(f"Logged in as {bot.user}")
 
-# Load all Cogs from the 'commands' directory
+# Load all cogs from 'commands' directory
 async def load_cogs():
     commands_dir = pathlib.Path("commands")
     if commands_dir.exists():
         for command_file in commands_dir.glob("*.py"):
-            if command_file.stem == "__init__":  # ⛔ Skip __init__.py
-                continue
-            
-            module_name = f"commands.{command_file.stem}"
+            cog_name = f"commands.{command_file.stem}"
             try:
-                await bot.load_extension(module_name)
-                config.logger.info(f"Loaded {module_name}")
+                await bot.load_extension(cog_name)
+                config.logger.info(f"Loaded cog: {cog_name}")
             except Exception as e:
-                config.logger.error(f"Failed to load {module_name}: {e}")
+                config.logger.error(f"Failed to load {cog_name}: {e}")
 
-# Start the bot
+# Run the bot
 async def run_bot():
-    config.logger.info("Starting Discord bot...")
-    await load_cogs()
-    await bot.start(os.getenv("DISCORD_BOT_TOKEN"))
+    async with bot:
+        await load_cogs()
+        await bot.start(os.getenv("DISCORD_BOT_TOKEN"))
 
-if __name__ == "__main__":
-    asyncio.run(run_bot())
+# Entry-point: define bot instance with proper intents
+bot = commands.Bot(command_prefix=config.BOT_PREFIX, intents=intents)
+
+asyncio.run(run_bot())
