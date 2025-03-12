@@ -71,7 +71,7 @@ class Catchup(commands.Cog):
                 await ctx.author.send(f"Error generating summary: {e}")
         else:
             # If no specific channel is provided, summarize across all whitelisted channels
-            user_messages = defaultdict(lambda: {"medical": [], "distress": [], "stress": [], "positive": []})
+            user_messages = defaultdict(lambda: {"medical": [], "distress": [], "stress": [], "positive": [], "general": []})
             time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
             for channel_name in allowed_channels:
@@ -83,6 +83,11 @@ class Catchup(commands.Cog):
                     async for message in channel.history(after=time_threshold, limit=100):
                         if message.author.bot:
                             continue  
+
+                        # Ensure "general" exists before appending messages
+                        if "general" not in user_messages[message.author.display_name]:
+                            user_messages[message.author.display_name]["general"] = []
+
                         user_messages[message.author.display_name]["general"].append(message.content)
                 except discord.Forbidden:
                     continue  
