@@ -9,19 +9,6 @@ class BotErrors(commands.Cog):  # ✅ Inherit from commands.Cog
         super().__init__()  # ✅ Ensure proper Cog initialization
 
     @staticmethod
-    async def check_forbidden_channel(ctx):
-        """Check if a command is used in a forbidden channel and notify the user."""
-        from config import is_forbidden_channel  # Import dynamically to avoid circular import issues
-        if is_forbidden_channel(ctx):
-            try:
-                dm_channel = await ctx.author.create_dm()
-                await dm_channel.send("⚠️ This bot cannot respond in this channel.")
-            except discord.Forbidden:
-                await ctx.send("⚠️ This bot cannot respond in this channel.")
-            return True  # Signal that the command should stop
-        return False
-
-    @staticmethod
     def require_role(role_name: str):
         async def predicate(ctx):
             if ctx.guild is None:  # DM Mode: Skip role checks

@@ -1,11 +1,11 @@
 import discord
 from discord.ext import commands
 import openai
-import config
 import os
 import datetime
 from collections import defaultdict
-from commands.bot_errors import BotErrors  # Import the error handler
+from commands.bot_errors import BotErrors
+from commands.config_manager import ConfigManager  # Import the config manager
 
 class Catchup(commands.Cog):
     """Cog for summarizing recent events across selected channels."""
@@ -13,27 +13,15 @@ class Catchup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-    async def eligible_channels(self, guild):
-        """Returns a list of channels that have a pinned "+catchup" message."""
-        eligible = []
-        for channel in guild.text_channels:
-            try:
-                async for message in channel.pins():
-                    if message.content.strip() == "+catchup":
-                        eligible.append(channel)
-                        break
-            except discord.Forbidden:
-                continue  # Ignore channels where the bot lacks permissions
-        return eligible
+        self.config_manager = bot.get_cog("ConfigManager")
 
     @commands.command()
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def catchup(self, ctx, channel: discord.TextChannel = None):
-        """Summarizes activity within eligible channels or a specified channel.
+        """Summarizes activity within whitelisted channels or a specified channel.
         
         Usage:
-        `!catchup` → Summarizes recent discussions across eligible channels.
+        `!catchup` → Summarizes recent discussions across allowed channels.
         `!catchup #channel` → Summarizes discussions in the specified channel.
         """
 
@@ -41,41 +29,27 @@ class Catchup(commands.Cog):
             await ctx.send("❌ This command can only be used in a server.")
             return
 
-        if await BotErrors.check_forbidden_channel(ctx):  # Prevents command use in #general
-            return
-
-        # Attempt to send the execution header via DM
-        try:
-            dm_channel = await ctx.author.create_dm()
-            await dm_channel.send(
-                f"📌 **Command Executed:** `!catchup`\n"
-                f"📍 **Channel:** {channel.mention if channel else 'Eligible Channels'}\n"
-                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
-            )
-            await ctx.message.delete()
-        except discord.Forbidden:
-            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
-            return
-
-        time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
+        # Fetch allowed channels from config_manager
+        allowed_channels = self.config_manager.get_command_whitelist("catchup")
 
         if channel:
-            eligible = await self.eligible_channels(ctx.guild)
-            if channel not in eligible:
-                await dm_channel.send(f"⚠️ {channel.mention} is not an eligible channel for `!catchup`. ")
+            # If a specific channel is provided, check if it's whitelisted
+            if channel.name not in allowed_channels:
+                await ctx.author.send(f"⚠️ {channel.mention} is not an allowed channel for `!catchup`.")
                 return
 
             messages = []
+            time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
             try:
                 async for message in channel.history(after=time_threshold, limit=200):
                     if not message.author.bot:
                         messages.append(message.content)
             except discord.Forbidden:
-                await dm_channel.send(f"I don’t have permission to read {channel.mention}.")
+                await ctx.author.send(f"I don’t have permission to read {channel.mention}.")
                 return
 
             if not messages:
-                await dm_channel.send(f"No recent discussions found in {channel.mention}.")
+                await ctx.author.send(f"No recent discussions found in {channel.mention}.")
                 return
 
             try:
@@ -87,16 +61,21 @@ class Catchup(commands.Cog):
                     ]
                 )
                 summary = response.choices[0].message.content
-                await dm_channel.send(f"Here's what's been happening in {channel.mention}:\n\n{summary}")
+                await ctx.author.send(f"Here's what's been happening in {channel.mention}:\n\n{summary}")
             except Exception as e:
-                await dm_channel.send(f"Error generating summary: {e}")
+                await ctx.author.send(f"Error generating summary: {e}")
         else:
-            eligible_channels = await self.eligible_channels(ctx.guild)
+            # If no specific channel is provided, summarize across all whitelisted channels
             user_messages = defaultdict(lambda: {"medical": [], "distress": [], "stress": [], "positive": []})
+            time_threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
 
-            for ch in eligible_channels:
+            for channel_name in allowed_channels:
+                channel = discord.utils.get(ctx.guild.text_channels, name=channel_name)
+                if not channel:
+                    continue  # Skip if the channel doesn't exist
+
                 try:
-                    async for message in ch.history(after=time_threshold, limit=100):
+                    async for message in channel.history(after=time_threshold, limit=100):
                         if message.author.bot:
                             continue  
                         user_messages[message.author.display_name]["general"].append(message.content)
@@ -104,7 +83,7 @@ class Catchup(commands.Cog):
                     continue  
 
             if not user_messages:
-                await dm_channel.send("No significant messages in the past 24 hours.")
+                await ctx.author.send("No significant messages in the past 24 hours.")
                 return
 
             formatted_messages = []
@@ -112,7 +91,7 @@ class Catchup(commands.Cog):
                 for category, messages in categories.items():
                     if messages:
                         formatted_messages.append(f"{user}: {messages[0]}")
-            
+
             token_limit = 12000  
             while sum(len(msg.split()) for msg in formatted_messages) > token_limit and len(formatted_messages) > 1:
                 formatted_messages.pop(0)
@@ -133,10 +112,10 @@ class Catchup(commands.Cog):
                     ]
                 )
                 summary = response.choices[0].message.content
-                await dm_channel.send("Here's a summary of recent discussions:")
-                await dm_channel.send(summary)
+                await ctx.author.send("Here's a summary of recent discussions:")
+                await ctx.author.send(summary)
             except Exception as e:
-                await dm_channel.send(f"Error generating summary: {e}")
+                await ctx.author.send(f"Error generating summary: {e}")
 
 async def setup(bot):
     await bot.add_cog(Catchup(bot))

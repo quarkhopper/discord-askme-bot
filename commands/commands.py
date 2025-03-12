@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-import config  # Import shared config
 from commands.bot_errors import BotErrors  # Import error handling
+from commands.config_manager import ConfigManager  # Import config manager for future integration
 
 class CommandsHelp(commands.Cog):
     """Cog that lists all available commands and their arguments."""
@@ -18,8 +18,6 @@ class CommandsHelp(commands.Cog):
         `!commands` → Lists all available commands in the bot.
         `!commands <command_name>` → Provides detailed usage for a specific command.
         """
-        if await BotErrors.check_forbidden_channel(ctx):
-            return
 
         # Determine execution mode
         is_dm = isinstance(ctx.channel, discord.DMChannel)
