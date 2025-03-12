@@ -80,6 +80,6 @@ class CommandsHelp(commands.Cog):
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))
 
-    command = bot.get_command("list_commands")
+    command = bot.get_command("commands")
     if command:
         command.command_mode = "both"
