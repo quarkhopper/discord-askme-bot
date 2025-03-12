@@ -27,6 +27,14 @@ class CommandsHelp(commands.Cog):
         is_dm = isinstance(ctx.channel, discord.DMChannel)
         mode_filter = "dm" if is_dm else "server"
 
+        # Debugging Output - Print All Commands & Modes
+        debug_info = "**🔍 Debug Info: Registered Commands & Modes**\n"
+        for cmd in self.bot.commands:
+            mode = getattr(cmd, "command_mode", "❌ Not Set")
+            debug_info += f"🔹 `{cmd.name}` - Mode: `{mode}`\n"
+        
+        await ctx.send(debug_info)  # Send debugging info in the server for testing
+
         # If a command name is provided, display details for that command
         if command_name:
             command = self.bot.get_command(command_name)
