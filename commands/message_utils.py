@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 import config  # Import shared config
 from commands.bot_errors import BotErrors  # Import the error handler
-from commands.command_utils import command_mode
 
 class MessageUtils(commands.Cog):
     """Cog for message management commands (clear, match)."""
@@ -12,7 +11,6 @@ class MessageUtils(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    @command_mode("server")
     @BotErrors.require_role("Fun Police")  # ✅ Requires both "Fun Police"
     @BotErrors.require_role("Vetted")  # ✅ and "Vetted" roles
     async def clear(self, ctx, limit: int = 1):
@@ -39,7 +37,6 @@ class MessageUtils(commands.Cog):
             await ctx.send("An error occurred while clearing messages.")
 
     @commands.command()
-    @command_mode("both")
     @BotErrors.require_role("Vetted")  # ✅ Requires only "Vetted"
     async def match(self, ctx, *, text: str):
         """Finds a message that matches a partial string and reports its position.
@@ -73,6 +70,10 @@ class MessageUtils(commands.Cog):
             config.logger.error(f"Error finding message: {e}")
             await ctx.send("An error occurred while searching for messages.")
             return None
+
+MessageUtils.clear.command_mode = "server"
+MessageUtils.match.command_mode = "both"
+
 
 async def setup(bot):
     await bot.add_cog(MessageUtils(bot))

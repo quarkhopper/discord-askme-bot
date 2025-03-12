@@ -1,73 +1,54 @@
 import discord
 from discord.ext import commands
 import openai
-import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
-from commands.command_utils import command_mode
 
 class Chat(commands.Cog):
-    """Cog for handling AI chat commands."""
+    """Cog for handling AI chat commands within a server."""
 
     def __init__(self, bot):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
     @commands.command()
-    @command_mode("both")
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
-        
+
         Usage:
         `!chat <message>` → Sends `<message>` to the AI bot and receives a response.
-        
-        - **DM Mode**: The bot will respond in a private message. No role restrictions apply.
-        - **Server Mode**: Requires the "Vetted" role. The bot will send results via DM and ensure the user is in the same server.
+
+        - **Server Mode Only**: Requires the "Vetted" role and responds directly in the server channel.
         """
-        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        # Ensure command is executed within a server
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.send("⚠️ This command can only be used in a server.")
+            return
 
-        # Server mode: enforce role restriction and check server membership
-        if not is_dm:
-            if not BotErrors.require_role("Vetted")(ctx):
-                return
-            try:
-                member = ctx.guild.get_member(ctx.author.id) or await ctx.guild.fetch_member(ctx.author.id)
-                if not member:
-                    await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
-                    return
-            except discord.NotFound:
-                await ctx.send("You must be a member of the same Discord server as the bot to use this command.")
-                return
-            except Exception:
-                await ctx.send("An error occurred while verifying your membership.")
-                return
+        # Verify the user has the "Vetted" role
+        if not BotErrors.require_role("Vetted")(ctx):
+            return
 
-        # Attempt to send the execution header via DM
-        try:
-            dm_channel = await ctx.author.create_dm()
-            await dm_channel.send(
-                f"📌 **Command Executed:** `!chat`\n"
-                f"📍 **Channel:** {'Direct Message' if is_dm else ctx.channel.name}\n"
-                f"⏳ **Timestamp:** {ctx.message.created_at}\n\n"
-            )
-            if not is_dm:
-                await ctx.message.delete()  # Delete the original command message in server mode
-        except discord.Forbidden:
-            if not is_dm:
-                await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
-            return  # Stop execution if DM cannot be sent
+        # Send "Please wait..." message
+        wait_message = await ctx.send("⏳ Processing... Please wait.")
 
         try:
+            # Generate AI response
             response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": message}]
             )
 
             reply = response.choices[0].message.content
-            await dm_channel.send(reply)
-        except Exception as e:
-            await dm_channel.send(f"Error: {e}")
+            await wait_message.delete()  # Remove "Please wait..." message
+            await ctx.send(reply)  # Post response in the server channel
 
+        except Exception as e:
+            await wait_message.delete()
+            await ctx.send(f"⚠️ An error occurred: {e}")
+
+# ✅ Manually set command mode to "server" only
+Chat.chat.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(Chat(bot))

@@ -6,7 +6,6 @@ import os
 import re  # Regex for extracting words
 from collections import Counter
 from commands.bot_errors import BotErrors  # Error handler
-from commands.command_utils import command_mode
 
 class TalkSimulator(commands.Cog):
     """Cog for simulating how a user might respond based on past messages."""
@@ -68,7 +67,6 @@ class TalkSimulator(commands.Cog):
         return discord.utils.get(ctx.guild.members, name=identifier)
 
     @commands.command()
-    @command_mode("server")
     @commands.check(not_in_dm)  # ✅ Prevents DM execution before parsing arguments
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def talkto(self, ctx, user_mention: str, *, prompt: str):
@@ -163,6 +161,8 @@ class TalkSimulator(commands.Cog):
                 await dm_channel.send("⚠️ An error occurred while generating a response.")
             except discord.Forbidden:
                 await ctx.send("⚠️ An error occurred while generating a response.")
+
+TalkSimulator.talkto.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(TalkSimulator(bot))

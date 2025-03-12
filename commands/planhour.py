@@ -4,7 +4,6 @@ import openai
 import config  # Import shared config
 import os
 from commands.bot_errors import BotErrors  # Import the error handler
-from commands.command_utils import command_mode
 
 class PlanHour(commands.Cog):
     """Cog for generating a humorous plan for the next hour based on recent messages."""
@@ -24,7 +23,6 @@ class PlanHour(commands.Cog):
         return messages
 
     @commands.command()
-    @command_mode("server")
     @BotErrors.require_role("Vetted")  # ✅ Standardized role requirement
     async def planhour(self, ctx):
         """Generates a mildly absurd but plausible plan for the next hour based on recent messages.
@@ -92,6 +90,8 @@ class PlanHour(commands.Cog):
                 await dm_channel.send("An error occurred while planning your next hour.")
             except discord.Forbidden:
                 await ctx.send("An error occurred while planning your next hour.")
+
+PlanHour.planhour.command_mode = "server"
 
 async def setup(bot):
     await bot.add_cog(PlanHour(bot))

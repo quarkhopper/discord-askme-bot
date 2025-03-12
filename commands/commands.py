@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import config  # Import shared config
 from commands.bot_errors import BotErrors  # Import error handling
-from commands.command_utils import command_mode
 
 class CommandsHelp(commands.Cog):
     """Cog that lists all available commands and their arguments."""
@@ -11,7 +10,6 @@ class CommandsHelp(commands.Cog):
         self.bot = bot
 
     @commands.command(name="commands")
-    @command_mode("both")  # Available in both DM and Server Mode
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def list_commands(self, ctx, command_name: str = None):
         """Displays a list of available commands, or detailed help for a specific command.
@@ -27,24 +25,16 @@ class CommandsHelp(commands.Cog):
         is_dm = isinstance(ctx.channel, discord.DMChannel)
         mode_filter = "dm" if is_dm else "server"
 
-        # Debugging Output - Print All Commands & Modes
-        debug_info = "**🔍 Debug Info: Registered Commands & Modes**\n"
-        for cmd in self.bot.commands:
-            mode = getattr(cmd, "command_mode", "❌ Not Set")
-            debug_info += f"🔹 `{cmd.name}` - Mode: `{mode}`\n"
-        
-        await ctx.send(debug_info)  # Send debugging info in the server for testing
-
         # If a command name is provided, display details for that command
         if command_name:
             command = self.bot.get_command(command_name)
             if not command:
-                await ctx.send(f"⚠️ No command named `{command_name}` found.")  # Exception: Allow this to display in server
+                await ctx.send(f"⚠️ No command named `{command_name}` found.")
                 return
 
             # Ensure command matches the correct mode
             if hasattr(command, "command_mode") and command.command_mode not in ["both", mode_filter]:
-                await ctx.send(f"⚠️ The command `!{command_name}` is not available in this mode.")  # Exception: Allow in server
+                await ctx.send(f"⚠️ The command `!{command_name}` is not available in this mode.")
                 return
 
             usage = f"**`!{command.name}`**\n"
@@ -55,7 +45,7 @@ class CommandsHelp(commands.Cog):
             if params:
                 usage += f"**Usage:** `!{command.name} {' '.join(params)}`\n"
 
-            await ctx.send(usage)  # Exception: Display directly in server
+            await ctx.send(usage)  # ✅ Displays directly in server or DM
             return
 
         # Filter commands by mode
@@ -64,13 +54,20 @@ class CommandsHelp(commands.Cog):
             key=lambda c: c.name
         )
 
-        help_text = "**Available Commands:**\n"
+        # Generate list of commands
+        if not commands_list:
+            await ctx.send("⚠️ No commands available in this mode.")
+            return
 
+        help_text = "**Available Commands:**\n"
         for command in commands_list:
             if command.help:
                 help_text += f"🔹 **`!{command.name}`** - {command.help.splitlines()[0]}\n"
 
-        await ctx.send(help_text)  # Exception: Display directly in server
+        await ctx.send(help_text)  # ✅ Displays directly in server or DM
+
+# ✅ Manually set `command_mode`
+CommandsHelp.list_commands.command_mode = "both"
 
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))
