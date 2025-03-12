@@ -1,21 +1,6 @@
 {
     "catchup": {
       "processing_whitelist": [
-        "general",
-        "introduce-yourself-leads",
-        "crisis-chat",
-        "story-time",
-        "i-did-something-dumb",
-        "bad-advice",
-        "old-and-beautiful",
-        "dream-journal",
-        "artwork",
-        "furry-friend-pics",
-        "florida-man",
-        "pics-from-life",
-        "cool-shit",
-        "roast-me-pics",
-        "cursed-profiles"
       ]
     }
   }
