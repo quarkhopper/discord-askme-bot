@@ -58,7 +58,6 @@ class Catchup(commands.Cog):
         for channel_name in allowed_channels:
             channel = discord.utils.get(ctx.guild.text_channels, name=channel_name)
             if not channel:
-                print(f"[Debug] Skipping channel {channel_name}: Not found")
                 continue  # Skip if the channel doesn't exist
 
             try:
@@ -70,18 +69,23 @@ class Catchup(commands.Cog):
                 if not messages:
                     continue  # Skip empty channels
 
-                # Log the messages before sending
-                print(f"[Debug] Messages collected from {channel.name}:", messages)
-
-                # Generate a summary for this channel
+                # Generate a concise, actionable summary
                 response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Summarize the following Discord messages into a single paragraph."},
+                        {"role": "system", "content": 
+                            "Summarize the following Discord messages into at most **three sentences**. "
+                            "Ignore trivial or unimportant discussions. "
+                            "Only include conversations that require engagement, support, or meaningful discussion. "
+                            "If there is nothing important, return an empty response."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
                 channel_summary = response.choices[0].message.content.strip()
+
+                # If the summary is empty or generic, skip this channel
+                if not channel_summary or channel_summary.lower() in ["no important discussions.", "nothing significant.", ""]:
+                    continue
 
                 # Store this for the final summary
                 overall_summaries.append(f"📢 **{channel.name} Summary:** {channel_summary}")
@@ -90,7 +94,6 @@ class Catchup(commands.Cog):
                 await ctx.author.send(f"📢 **Summary for `#{channel.name}`:**\n{channel_summary}")
 
             except discord.Forbidden:
-                print(f"[Debug] No permission to read {channel.name}")
                 continue  
             except Exception as e:
                 await ctx.author.send(f"❌ Error summarizing `#{channel_name}`: {e}")
