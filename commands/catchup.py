@@ -98,7 +98,7 @@ class Catchup(commands.Cog):
                 )
                 refined_summary = response2.choices[0].message.content.strip()
 
-                # **NEW: Filter out non-engaging summaries**
+                # **Filter out non-engaging summaries**
                 if refined_summary.upper() == "IGNORE":
                     continue  # Skip this channel
 
@@ -113,12 +113,27 @@ class Catchup(commands.Cog):
             except Exception as e:
                 await ctx.author.send(f"❌ Error summarizing `#{channel_name}`: {e}")
 
-        # Send the final overall summary
+        # **NEW: Split long messages into chunks before sending**
+        def split_into_chunks(text, max_length=2000):
+            chunks = []
+            while len(text) > max_length:
+                split_index = text[:max_length].rfind("\n")  # Try to break at the last newline
+                if split_index == -1:
+                    split_index = max_length  # If no newline found, break at max length
+                chunks.append(text[:split_index])
+                text = text[split_index:].strip()
+            chunks.append(text)  # Append remaining part
+            return chunks
+
         if overall_summaries:
             final_summary = "\n\n".join(overall_summaries)
-            await ctx.author.send(f"📜 **Final Catchup Summary:**\n{final_summary}")
+            for chunk in split_into_chunks(final_summary):
+                await ctx.author.send(chunk)  # Send each chunk separately
         else:
-            await ctx.author.send("No significant discussions were found in the past 24 hours.")
+            await ctx.author.send("✅ **`!catchup` complete. No significant discussions found.**")
+
+        # **NEW: Final confirmation message**
+        await ctx.author.send("✅ **`!catchup` has finished processing. You're up to date!**")
 
 async def setup(bot):
     await bot.add_cog(Catchup(bot))
