@@ -1,45 +1,45 @@
 import asyncio
 import discord
+import openai
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
-import config  # shared config
+import config  # Import shared config
 import pathlib
 
 # Load environment variables
 load_dotenv()
 
-# Create bot instance (essential)
+# Initialize OpenAI client with the latest API format
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Discord bot setup
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True  # Allows access to message content
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Initialize OpenAI client if needed (use your pinned version)
-# openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# Log when bot is ready
 @bot.event
 async def on_ready():
     config.logger.info(f"Logged in as {bot.user}")
 
-# Load all cogs from 'commands' directory
+# Load all Cogs from the 'commands' directory
 async def load_cogs():
     commands_dir = pathlib.Path("commands")
     if commands_dir.exists():
         for command_file in commands_dir.glob("*.py"):
-            cog_name = f"commands.{command_file.stem}"
+            module_name = f"commands.{command_file.stem}"
             try:
-                await bot.load_extension(cog_name)
-                config.logger.info(f"Loaded cog: {cog_name}")
+                await bot.load_extension(module_name)
+                config.logger.info(f"Loaded {module_name}")
             except Exception as e:
-                config.logger.error(f"Failed to load {cog_name}: {e}")
+                config.logger.error(f"Failed to load {module_name}: {e}")
 
-# Run the bot
+# Start the bot
 async def run_bot():
-    async with bot:
-        await load_cogs()
-        await bot.start(os.getenv("DISCORD_BOT_TOKEN"))
+    config.logger.info("Starting Discord bot...")
+    await load_cogs()
+    await bot.start(os.getenv("DISCORD_BOT_TOKEN"))
 
-# Entry-point: define bot instance with proper intents
-bot = commands.Bot(command_prefix=config.BOT_PREFIX, intents=intents)
-
-asyncio.run(run_bot())
+if __name__ == "__main__":
+    asyncio.run(run_bot())
