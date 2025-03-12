@@ -82,15 +82,15 @@ class Catchup(commands.Cog):
                 )
                 raw_summary = response1.choices[0].message.content.strip()
 
-                # **Second Pass: Validate and refine the summary**
+                # **Second Pass: Rewrite and refine the summary**
                 response2 = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
-                            "Evaluate the following summary of a Discord conversation. "
-                            "1) If the summary is meaningful and provides useful insights, keep it as is. "
-                            "2) If the summary is lacking in detail but important discussions took place, expand it to make it clearer. "
-                            "3) If the summary contains no meaningful discussion, return 'IGNORE' with no other content."},
+                            "Rewrite the following summary to ensure it is **concise yet informative**. "
+                            "Ensure all key points are captured, removing unnecessary details. "
+                            "If the summary is already strong, keep it nearly the same. "
+                            "If the summary is completely unimportant, return only the word 'IGNORE'."},
                         {"role": "user", "content": raw_summary}
                     ]
                 )
