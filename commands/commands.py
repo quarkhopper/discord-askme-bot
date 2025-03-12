@@ -69,13 +69,6 @@ class CommandsHelp(commands.Cog):
 
         await ctx.send(help_text)  # ✅ Displays directly in server or DM
 
-        # DEBUG: Print all commands and their command_mode attributes
-        debug_info = "\n".join([
-            f"{cmd.name}: {getattr(cmd, 'command_mode', 'MISSING')}"
-            for cmd in self.bot.commands
-        ])
-        await ctx.send(f"DEBUG:\n```{debug_info}```")
-
 
 async def setup(bot):
     await bot.add_cog(CommandsHelp(bot))
