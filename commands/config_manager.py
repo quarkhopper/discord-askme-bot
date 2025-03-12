@@ -40,6 +40,14 @@ class ConfigManager(commands.Cog):
         async for message in channel.history(limit=1):
             content = message.content.strip()
 
+            # If the content is wrapped in triple backticks, remove them
+            if content.startswith("```json") and content.endswith("```"):
+                content = content[7:-3].strip()  # Remove ```json (7 chars) and ``` (3 chars)
+            elif content.startswith("```") and content.endswith("```"):
+                content = content[3:-3].strip()  # Remove ``` and ```
+                
+            print(f"[ConfigManager] Processed JSON content:\n{repr(content)}")  # Debugging log
+            
             # DEBUGGING: Log the raw message content
             print(f"[ConfigManager] Raw message content: {repr(content)}")
 
