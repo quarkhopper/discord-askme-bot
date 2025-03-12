@@ -107,7 +107,7 @@ class Catchup(commands.Cog):
                 formatted_messages.pop(0)
 
             try:
-                response = config_manager.openai_client.chat.completions.create(
+                response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
