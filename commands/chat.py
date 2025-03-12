@@ -11,9 +11,6 @@ class Chat(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
 
-        # ✅ Attach command_mode inside __init__ before commands are registered
-        self.bot.get_command("chat").command_mode = "server"
-
     @commands.command()
     async def chat(self, ctx, *, message: str):
         """Talk to the bot and get AI-generated responses.
@@ -53,3 +50,7 @@ class Chat(commands.Cog):
 async def setup(bot):
     """Load the cog into the bot."""
     await bot.add_cog(Chat(bot))
+
+    command = bot.get_command("chat")
+    if command:
+        command.command_mode = "server"
