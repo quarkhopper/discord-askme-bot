@@ -78,7 +78,7 @@ class Catchup(commands.Cog):
                             "Ignore trivial or unimportant discussions. "
                             "Ignore single-message responses such as 'Fair, tbh' or similar standalone reactions. "
                             "Ignore solo updates unless they received responses or engagement. "
-                            "If there is **nothing important to summarize, return only the word 'IGNORE'**."},
+                            "Only include conversations that require engagement, support, or meaningful discussion."},
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
@@ -98,9 +98,9 @@ class Catchup(commands.Cog):
                 )
                 refined_summary = response2.choices[0].message.content.strip()
 
-                # **NEW: Ensure no "ghost summaries" appear**
+                # **NEW: Filter out non-engaging summaries**
                 if refined_summary.upper() == "IGNORE":
-                    continue  # Skip this channel entirely
+                    continue  # Skip this channel
 
                 # Store this for the final summary
                 overall_summaries.append(f"📢 **{channel.name} Summary:** {refined_summary}")
@@ -118,7 +118,7 @@ class Catchup(commands.Cog):
             final_summary = "\n\n".join(overall_summaries)
             await ctx.author.send(f"📜 **Final Catchup Summary:**\n{final_summary}")
         else:
-            await ctx.author.send("✅ **`!catchup` complete. No significant discussions found.**")
+            await ctx.author.send("No significant discussions were found in the past 24 hours.")
 
 async def setup(bot):
     await bot.add_cog(Catchup(bot))
