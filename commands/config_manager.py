@@ -1,5 +1,6 @@
 import discord
 import json
+import re
 from discord.ext import commands
 
 class ConfigManager(commands.Cog):
@@ -38,6 +39,14 @@ class ConfigManager(commands.Cog):
 
         async for message in channel.history(limit=1):
             content = message.content.strip()
+
+            # DEBUGGING: Log the raw message content
+            print(f"[ConfigManager] Raw message content: {repr(content)}")
+
+            if not content:
+                print("[ConfigManager] Retrieved an empty message from #bot-config.")
+                return
+
             try:
                 new_config = json.loads(content)  # Try parsing first
                 self.command_config = new_config  # Replace existing config
@@ -60,6 +69,23 @@ class ConfigManager(commands.Cog):
                         print("[ConfigManager] Automatic correction failed. Manual review needed.")
                 else:
                     print("[ConfigManager] Could not generate a corrected JSON format.")
+
+    def fix_json_format(self, raw_json):
+        """Attempts to fix common JSON formatting issues."""
+        try:
+            # Remove non-printable characters (invisible Discord artifacts)
+            raw_json = re.sub(r'[^\x20-\x7E\n\t]', '', raw_json)
+
+            # Fix smart quotes and apostrophes
+            raw_json = raw_json.replace("“", "\"").replace("”", "\"")
+            raw_json = raw_json.replace("’", "'").replace("‘", "'")
+
+            # Attempt parsing again
+            parsed_json = json.loads(raw_json)
+        except json.JSONDecodeError:
+            return None  # If still broken, return failure
+        
+        return json.dumps(parsed_json, indent=4)  # Return properly formatted JSON
 
     async def get_command_whitelist(self, command_name):
         """Retrieves the latest configuration before returning the whitelist for a command."""
