@@ -16,7 +16,7 @@ class DrawCommand(commands.Cog):
         """Analyze the prompt to extract abstract concepts and map them to shapes and structure."""
         concepts = []
         shapes = []
-        colors = ["red", "blue", "green", "yellow", "orange", "purple", "white", "gray"]
+        colors = ["red", "yellow", "orange", "white", "cyan", "magenta", "lime"]  # Improved contrast
 
         # Define mappings from concepts to shapes
         concept_mapping = {
@@ -44,52 +44,53 @@ class DrawCommand(commands.Cog):
         if not shapes:
             shapes = random.choices(list(concept_mapping.values()), k=3)
 
-        # Extract colors mentioned in the prompt
-        selected_colors = random.choices(colors, k=max(1, len(shapes)))  # Ensure at least 1 color
+        # Assign colors, ensuring at least one is available
+        selected_colors = random.choices(colors, k=max(1, len(shapes)))
 
         return concepts, shapes, selected_colors
 
     def generate_drawing(self, prompt):
         """Generate an image using structured shape placement based on prompt analysis."""
         width, height = 512, 512
-        image = Image.new("RGB", (width, height), "black")  # Now using a black background
+        image = Image.new("RGB", (width, height), "black")  # Black background
         draw = ImageDraw.Draw(image)
 
         concepts, shapes, colors = self.interpret_prompt(prompt)
 
         for i, shape in enumerate(shapes):
-            color = colors[i % len(colors)]  # Wrap around if not enough colors
+            color = colors[i % len(colors)]  # Cycle colors safely
 
             if shape == "circle":
-                x1, y1 = random.randint(100, 400), random.randint(100, 400)
                 r = random.randint(30, 100)
-                draw.ellipse([x1 - r, y1 - r, x1 + r, y1 + r], fill=color, outline="white")
+                x, y = random.randint(r, width - r), random.randint(r, height - r)
+                draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline="white")
 
             elif shape == "overlapping circles":
-                x, y = random.randint(150, 350), random.randint(150, 350)
                 r = random.randint(30, 80)
+                x, y = random.randint(r, width - r), random.randint(r, height - r)
                 draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline="white")
                 draw.ellipse([x + 20, y - r, x + 20 + r, y + r], fill=color, outline="white")
 
             elif shape == "rectangle":
-                x1, y1 = random.randint(50, 350), random.randint(50, 350)
-                x2, y2 = x1 + random.randint(50, 150), y1 + random.randint(50, 150)
+                w, h = random.randint(50, 150), random.randint(50, 150)
+                x1, y1 = random.randint(0, width - w), random.randint(0, height - h)
+                x2, y2 = x1 + w, y1 + h
                 draw.rectangle([x1, y1, x2, y2], fill=color, outline="white")
 
             elif shape == "triangle":
-                x1, y1 = random.randint(50, 450), random.randint(50, 450)
+                x1, y1 = random.randint(50, width - 50), random.randint(50, height - 50)
                 x2, y2 = x1 + random.randint(-50, 50), y1 + random.randint(50, 100)
                 x3, y3 = x1 + random.randint(-50, 50), y1 - random.randint(50, 100)
                 draw.polygon([x1, y1, x2, y2, x3, y3], fill=color, outline="white")
 
             elif shape == "lines":
                 for _ in range(random.randint(2, 5)):
-                    x1, y1 = random.randint(50, 450), random.randint(50, 450)
-                    x2, y2 = random.randint(50, 450), random.randint(50, 450)
+                    x1, y1 = random.randint(0, width), random.randint(0, height)
+                    x2, y2 = random.randint(0, width), random.randint(0, height)
                     draw.line([x1, y1, x2, y2], fill=color, width=3)
 
             elif shape == "spiral":
-                cx, cy = random.randint(150, 350), random.randint(150, 350)
+                cx, cy = random.randint(100, width - 100), random.randint(100, height - 100)
                 r = 5
                 for j in range(10):
                     x1, y1 = cx - r, cy - r
