@@ -59,6 +59,13 @@ class ConfigManager(commands.Cog):
                 new_config = json.loads(content)  # Try parsing first
                 self.command_config = new_config  # Replace existing config
                 print("[ConfigManager] Configuration updated successfully.")
+                
+                # 🔍 DEBUG: Check if "guide" is found in the parsed JSON
+                if "guide" in new_config:
+                    print("[ConfigManager] 'guide' section found in JSON!")
+                else:
+                    print("[ConfigManager] WARNING: 'guide' section NOT found in JSON!")
+
             except json.JSONDecodeError:
                 print("[ConfigManager] Invalid JSON detected. Attempting to correct format...")
 
@@ -73,6 +80,7 @@ class ConfigManager(commands.Cog):
                         # Edit the original message to update with fixed JSON
                         await message.edit(content=f"```json\n{fixed_content}\n```")
                         print("[ConfigManager] Updated #bot-config with corrected JSON.")
+
                     except json.JSONDecodeError:
                         print("[ConfigManager] Automatic correction failed. Manual review needed.")
                 else:
@@ -98,6 +106,15 @@ class ConfigManager(commands.Cog):
     async def get_command_whitelist(self, command_name):
         """Retrieves the latest configuration before returning the whitelist for a command."""
         await self.fetch_latest_config()  # Polls #bot-config for the latest data
+        
+        # 🔍 DEBUG: Log available commands
+        print(f"[ConfigManager] Available commands in config: {list(self.command_config.keys())}")
+        
+        if command_name in self.command_config:
+            print(f"[ConfigManager] Found whitelist for '{command_name}': {self.command_config[command_name].get('processing_whitelist', [])}")
+        else:
+            print(f"[ConfigManager] WARNING: No entry found for command '{command_name}' in config!")
+
         return self.command_config.get(command_name, {}).get("processing_whitelist", [])
 
 async def setup(bot):
