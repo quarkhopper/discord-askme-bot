@@ -16,7 +16,7 @@ class DrawCommand(commands.Cog):
         """Analyze the prompt to extract abstract concepts and map them to shapes and structure."""
         concepts = []
         shapes = []
-        colors = ["red", "blue", "green", "yellow", "orange", "purple", "black", "white", "gray"]
+        colors = ["red", "blue", "green", "yellow", "orange", "purple", "white", "gray"]
 
         # Define mappings from concepts to shapes
         concept_mapping = {
@@ -54,7 +54,7 @@ class DrawCommand(commands.Cog):
     def generate_drawing(self, prompt):
         """Generate an image using structured shape placement based on prompt analysis."""
         width, height = 512, 512
-        image = Image.new("RGB", (width, height), "white")
+        image = Image.new("RGB", (width, height), "black")  # Now using a black background
         draw = ImageDraw.Draw(image)
 
         concepts, shapes, colors = self.interpret_prompt(prompt)
@@ -65,24 +65,24 @@ class DrawCommand(commands.Cog):
             if shape == "circle":
                 x1, y1 = random.randint(100, 400), random.randint(100, 400)
                 r = random.randint(30, 100)
-                draw.ellipse([x1 - r, y1 - r, x1 + r, y1 + r], fill=color, outline="black")
+                draw.ellipse([x1 - r, y1 - r, x1 + r, y1 + r], fill=color, outline="white")
 
             elif shape == "overlapping circles":
                 x, y = random.randint(150, 350), random.randint(150, 350)
                 r = random.randint(30, 80)
-                draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline="black")
-                draw.ellipse([x + 20, y - r, x + 20 + r, y + r], fill=color, outline="black")
+                draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline="white")
+                draw.ellipse([x + 20, y - r, x + 20 + r, y + r], fill=color, outline="white")
 
             elif shape == "rectangle":
                 x1, y1 = random.randint(50, 350), random.randint(50, 350)
                 x2, y2 = x1 + random.randint(50, 150), y1 + random.randint(50, 150)
-                draw.rectangle([x1, y1, x2, y2], fill=color, outline="black")
+                draw.rectangle([x1, y1, x2, y2], fill=color, outline="white")
 
             elif shape == "triangle":
                 x1, y1 = random.randint(50, 450), random.randint(50, 450)
                 x2, y2 = x1 + random.randint(-50, 50), y1 + random.randint(50, 100)
                 x3, y3 = x1 + random.randint(-50, 50), y1 - random.randint(50, 100)
-                draw.polygon([x1, y1, x2, y2, x3, y3], fill=color, outline="black")
+                draw.polygon([x1, y1, x2, y2, x3, y3], fill=color, outline="white")
 
             elif shape == "lines":
                 for _ in range(random.randint(2, 5)):
@@ -138,8 +138,12 @@ class DrawCommand(commands.Cog):
         await please_wait.delete()
 
         # Generate a description of what was drawn
-        description = f"🖌️ **Drawing Interpretation:**\n"
-        description += f"Based on your prompt, I interpreted the themes of `{', '.join(concepts)}` and represented them using:\n"
+        description = "🖌️ **Drawing Interpretation:**\n"
+        if concepts:
+            description += f"Based on your prompt, I interpreted the themes of `{', '.join(concepts)}` and represented them using:\n"
+        else:
+            description += "I generated abstract shapes based on the given prompt:\n"
+
         for i, shape in enumerate(shapes):
             description += f"- A `{shape}` filled with `{colors[i]}`.\n"
 
