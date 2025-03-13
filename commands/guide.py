@@ -104,19 +104,15 @@ class Guide(commands.Cog):
 
             await asyncio.sleep(1)  # **Rate limiting measure**
 
-        # Compile the final response
-        if summaries:
-            final_message = "\n\n".join(summaries)
-        else:
-            final_message = "Fine, tbh."
-
-        # Ensure message does not exceed 2000-character limit
-        chunks = [final_message[i : i + 1900] for i in range(0, len(final_message), 1900)]
+        # Ensure a maximum of 3 channels per message to prevent formatting issues
+        chunk_size = 3
+        summary_chunks = [summaries[i:i + chunk_size] for i in range(0, len(summaries), chunk_size)]
 
         # DM the user in chunks
         try:
-            for chunk in chunks:
-                await ctx.author.send(chunk)
+            for chunk in summary_chunks:
+                final_message = "\n\n".join(chunk)
+                await ctx.author.send(final_message)
             await ctx.author.send("✅ !guide has finished processing. You're up to date!")
         except discord.Forbidden:
             await ctx.send("⚠️ I couldn't send you a DM. Please check your settings.")
