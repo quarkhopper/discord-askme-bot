@@ -127,6 +127,12 @@ discord-askme-bot/
 
 ---
 
+### Considerations for OpenAI API Calls
+
+- When planning to make multiple OpenAI API calls in a command, use a persistent OpenAI client session instead of reinitializing it with each request. This reduces overhead, improves efficiency, and helps prevent hitting rate limits unnecessarily.
+
+---
+
 # Common Development Issues & Fixes
 
 ### **Commands Must Delete Their Invocation Messages**

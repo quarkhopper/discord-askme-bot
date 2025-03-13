@@ -19,7 +19,7 @@ class Guide(commands.Cog):
                 try:
                     response = await self.openai_client.chat.completions.create(
                         model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": f"Summarize the recent discussion in #{channel_name}:\n{messages_text}"}]
+                        messages=[{"role": "user", "content": f"Summarize the last 10 messages in #{channel_name} in one sentence."}]
                     )
                     return response.choices[0].message.content.strip()
                 except openai.APIError as e:
@@ -74,14 +74,18 @@ class Guide(commands.Cog):
                 continue
 
             # Fetch recent messages for summarization
-            messages = [msg async for msg in channel.history(limit=20)]
+            messages = [msg async for msg in channel.history(limit=10)]
             messages_text = "\n".join(f"{msg.author.display_name}: {msg.content}" for msg in messages if msg.content)
 
-            if not messages_text.strip():
-                continue  # Skip empty channels
+            # Fetch channel description
+            description = channel.topic if channel.topic else "No description available."
 
-            summary = await self.fetch_summary(channel.name, messages_text)
-            summaries.append(f"📢 **Summary for #{channel.name}:**\n{summary}")
+            if not messages_text.strip():
+                summary_text = "No recent discussion available."
+            else:
+                summary_text = await self.fetch_summary(channel.name, messages_text)
+
+            summaries.append(f"📢 **#{channel.name}** - *{description}*\n➡ {summary_text}")
 
             await asyncio.sleep(1)  # **Rate limiting measure**
 
