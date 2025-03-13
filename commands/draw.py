@@ -94,8 +94,8 @@ class DrawCommand(commands.Cog):
                 cx, cy = random.randint(150, 350), random.randint(150, 350)
                 r = 5
                 for j in range(10):
-                    x1, y1 = cx + r, cy + r
-                    x2, y2 = cx - r, cy - r
+                    x1, y1 = cx - r, cy - r
+                    x2, y2 = cx + r, cy + r
                     draw.arc([x1, y1, x2, y2], start=0, end=360, fill=color)
                     r += 10
 
