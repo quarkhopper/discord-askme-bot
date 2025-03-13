@@ -102,31 +102,34 @@ class Catchup(commands.Cog):
                 if refined_summary.upper() == "IGNORE":
                     continue  # Skip this channel
 
-                # Store this for the final summary
-                overall_summaries.append(f"📢 **{channel.name} Summary:** {refined_summary}")
+                # **NEW: Ensure summaries are stored only once**
+                summary_text = f"📢 **Summary for `#{channel.name}`:**\n{refined_summary}"
+                overall_summaries.append(summary_text)
 
-                # Send per-channel summary immediately
-                await ctx.author.send(f"📢 **Summary for `#{channel.name}`:**\n{refined_summary}")
+                # **Only send each summary once**
+                await ctx.author.send(summary_text)
 
             except discord.Forbidden:
                 continue  
             except Exception as e:
                 await ctx.author.send(f"❌ Error summarizing `#{channel_name}`: {e}")
 
-        # **NEW: Split long messages into chunks before sending**
-        def split_into_chunks(text, max_length=2000):
-            chunks = []
-            while len(text) > max_length:
-                split_index = text[:max_length].rfind("\n")  # Try to break at the last newline
-                if split_index == -1:
-                    split_index = max_length  # If no newline found, break at max length
-                chunks.append(text[:split_index])
-                text = text[split_index:].strip()
-            chunks.append(text)  # Append remaining part
-            return chunks
-
+        # **NEW: Prevent duplicate summary formatting**
         if overall_summaries:
             final_summary = "\n\n".join(overall_summaries)
+
+            # **Split long messages into chunks before sending**
+            def split_into_chunks(text, max_length=2000):
+                chunks = []
+                while len(text) > max_length:
+                    split_index = text[:max_length].rfind("\n")  # Try to break at the last newline
+                    if split_index == -1:
+                        split_index = max_length  # If no newline found, break at max length
+                    chunks.append(text[:split_index])
+                    text = text[split_index:].strip()
+                chunks.append(text)  # Append remaining part
+                return chunks
+
             for chunk in split_into_chunks(final_summary):
                 await ctx.author.send(chunk)  # Send each chunk separately
         else:
