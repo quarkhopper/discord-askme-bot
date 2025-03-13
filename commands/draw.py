@@ -45,9 +45,7 @@ class DrawCommand(commands.Cog):
             shapes = random.choices(list(concept_mapping.values()), k=3)
 
         # Extract colors mentioned in the prompt
-        selected_colors = [color for color in colors if color in prompt.lower()]
-        if not selected_colors:
-            selected_colors = random.choices(colors, k=len(shapes))  # Assign random colors
+        selected_colors = random.choices(colors, k=max(1, len(shapes)))  # Ensure at least 1 color
 
         return concepts, shapes, selected_colors
 
@@ -60,7 +58,7 @@ class DrawCommand(commands.Cog):
         concepts, shapes, colors = self.interpret_prompt(prompt)
 
         for i, shape in enumerate(shapes):
-            color = colors[i]
+            color = colors[i % len(colors)]  # Wrap around if not enough colors
 
             if shape == "circle":
                 x1, y1 = random.randint(100, 400), random.randint(100, 400)
@@ -145,7 +143,7 @@ class DrawCommand(commands.Cog):
             description += "I generated abstract shapes based on the given prompt:\n"
 
         for i, shape in enumerate(shapes):
-            description += f"- A `{shape}` filled with `{colors[i]}`.\n"
+            description += f"- A `{shape}` filled with `{colors[i % len(colors)]}`.\n"
 
         # Send the image as a file
         with open(file_path, "rb") as file:
