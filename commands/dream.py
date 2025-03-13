@@ -38,14 +38,44 @@ class DreamAnalysis(commands.Cog):
                     break
         return "⚠️ Unable to analyze the dream due to API issues."
 
+    async def get_last_message(self, ctx):
+        """Fetches the last message in the current context if no argument is provided."""
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        try:
+            if is_dm:
+                async for message in ctx.channel.history(limit=2):
+                    if message.author != self.bot.user:
+                        return message.content
+            else:
+                async for message in ctx.channel.history(limit=2):
+                    if message.author != self.bot.user and message.id != ctx.message.id:
+                        return message.content
+        except discord.Forbidden:
+            return None
+        return None
+
     @commands.command()
-    async def dream(self, ctx, *, description: str):
+    async def dream(self, ctx, *, description: str = None):
         """Analyze a dream and provide an interpretation.
         
         Usage:
         `!dream I was flying over the ocean` → Returns a dream interpretation.
+        `!dream` (no argument) → Uses the last message in the history.
         """
         is_dm = isinstance(ctx.channel, discord.DMChannel)
+
+        # Delete the command message
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            pass  # Ignore if bot lacks permission
+
+        # If no description provided, fetch the last message
+        if not description:
+            description = await self.get_last_message(ctx)
+            if not description:
+                await ctx.send("⚠️ No previous message found to analyze. Please provide a dream description.")
+                return
 
         # In Server Mode, enforce role restrictions
         if not is_dm:
