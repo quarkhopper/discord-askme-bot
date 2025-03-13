@@ -100,7 +100,7 @@ discord-askme-bot/
 - **If the DM cannot be sent, display an error message in the channel, but do NOT send the full response there.**
 - **Bot-generated command responses must never be posted in the server channel** to prevent clutter.
 - **Final status messages** (e.g., `"✅ Done!"`) should be sent for commands with long processing times.
-
+- **Long responses **must be split into chunks** to avoid exceeding Discord’s 2000-character limit.**
 ---
 
 # Dynamic Command Configurations
@@ -124,20 +124,6 @@ discord-askme-bot/
 ```
 - Commands must query `config_manager.py` at runtime to get the latest allowed channels.
 - **Commands should NOT assume all channels are available**—whitelists dictate usage.
-
----
-
-# AI Response Formatting Rules
-
-### ✅ **New AI Summarization Rules (`!catchup`)**
-- AI summaries **must never** output `"IGNORE."` as a response.
-- If a summary is minimal, **return `"Fine, tbh."`** instead.
-- Long responses **must be split into chunks** to avoid exceeding Discord’s 2000-character limit.
-- The final output **must include a summary completion message** (e.g., `"✅ You're up to date!"`).
-- OpenAI responses **should be filtered for engagement**:
-  - Avoid trivial messages.
-  - Highlight meaningful discussions.
-  - Eliminate empty summaries.
 
 ---
 
