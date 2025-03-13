@@ -120,8 +120,8 @@ class Snapshot(commands.Cog):
         # Delete the "Please wait..." message
         await please_wait.delete()
 
-        # Create an embed to display the image without the raw URL
-        embed = discord.Embed(title="📸 AI Snapshot", description=f"📝 **Generated Prompt:** `{image_prompt}`", color=discord.Color.blue())
+        # Create an embed to display only the image
+        embed = discord.Embed(title="📸 AI Snapshot", color=discord.Color.blue())
         embed.set_image(url=image_url)
 
         # Send the embedded image
