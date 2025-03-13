@@ -19,7 +19,14 @@ class Guide(commands.Cog):
                 try:
                     response = await self.openai_client.chat.completions.create(
                         model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": f"Summarize the last 10 messages in #{channel_name} in one sentence."}]
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": f"Here are the last 10 messages from #{channel_name}:\n\n"
+                                           f"{messages_text}\n\n"
+                                           "Summarize the discussion in one sentence."
+                            }
+                        ]
                     )
                     return response.choices[0].message.content.strip()
                 except openai.APIError as e:
@@ -55,16 +62,24 @@ class Guide(commands.Cog):
         except discord.Forbidden:
             pass  # Ignore if bot lacks permission
 
+        # Send DM header before processing begins
+        try:
+            header = f"📢 **Command Executed:** `!guide`\n📅 **Date:** {discord.utils.utcnow()}\n📝 Fetching recent discussions...\n\n"
+            await ctx.author.send(header)
+        except discord.Forbidden:
+            await ctx.send("⚠️ I couldn't send you a DM. Please check your settings.")
+            return
+
         # Fetch configuration dynamically
         config_manager = self.bot.get_cog("ConfigManager")
         if not config_manager:
-            await ctx.send("⚠️ Configuration system is not available.")
+            await ctx.author.send("⚠️ Configuration system is not available.")
             return
 
         # Fetch whitelisted channels for "guide"
         whitelisted_channels = await config_manager.get_command_whitelist("guide")
         if not whitelisted_channels:
-            await ctx.send("⚠️ No channels are currently whitelisted for summaries.")
+            await ctx.author.send("⚠️ No channels are currently whitelisted for summaries.")
             return
 
         summaries = []
@@ -100,8 +115,6 @@ class Guide(commands.Cog):
 
         # DM the user in chunks
         try:
-            header = f"📢 **Command Executed:** `!guide`\n📅 **Date:** {discord.utils.utcnow()}\n📝 Fetching recent discussions...\n\n"
-            await ctx.author.send(header)  # Send header separately
             for chunk in chunks:
                 await ctx.author.send(chunk)
             await ctx.author.send("✅ !guide has finished processing. You're up to date!")
