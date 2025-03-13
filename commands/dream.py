@@ -54,30 +54,25 @@ class DreamAnalysis(commands.Cog):
                 await ctx.send("⚠️ You must have the 'Vetted' role to use this command.")
                 return
 
-        # Send DM header before processing begins
-        header = (
-            f"📢 **Command Executed:** `!dream`\n"
-            f"📅 **Date:** {discord.utils.utcnow()}\n"
-            f"📝 Analyzing your dream...\n\n"
-        )
-
-        try:
-            dm_channel = await ctx.author.create_dm()
-            await dm_channel.send(header)
-        except discord.Forbidden:
-            await ctx.send("⚠️ I couldn't send you a DM. Please check your settings.")
-            return
-
         # Fetch dream interpretation
         interpretation = await self.fetch_dream_analysis(description)
 
-        # Send results via DM
-        try:
-            await dm_channel.send(f"💭 **Dream Interpretation:**\n{interpretation}")
-            if not is_dm:
-                await ctx.message.delete()
-        except discord.Forbidden:
-            await ctx.send("⚠️ Could not send a DM. Please enable DMs from server members.")
+        # Format the response
+        response = f"💭 **Dream Interpretation:**\n{interpretation}"
+
+        # Send output based on execution mode
+        if is_dm:
+            try:
+                header = (
+                    f"📢 **Command Executed:** `!dream`\n"
+                    f"📅 **Date:** {discord.utils.utcnow()}\n"
+                    f"📝 Analyzing your dream...\n\n"
+                )
+                await ctx.send(header + response)
+            except discord.Forbidden:
+                await ctx.send("⚠️ I couldn't send you a DM. Please check your settings.")
+        else:
+            await ctx.send(response)  # Server mode sends output directly in the channel
 
     async def setup(bot):
         """Load the cog into the bot and set execution mode."""
