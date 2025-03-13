@@ -74,9 +74,10 @@ class DreamAnalysis(commands.Cog):
         else:
             await ctx.send(response)  # Server mode sends output directly in the channel
 
-    async def setup(bot):
-        """Load the cog into the bot and set execution mode."""
-        await bot.add_cog(DreamAnalysis(bot))
-        command = bot.get_command("dream")
-        if command:
-            command.command_mode = "both"  # Supports both DM and server mode
+# ✅ FIXED: Move `setup()` OUTSIDE the class
+async def setup(bot):
+    """Load the cog into the bot and set execution mode."""
+    await bot.add_cog(DreamAnalysis(bot))
+    command = bot.get_command("dream")
+    if command:
+        command.command_mode = "both"  # Supports both DM and server mode
