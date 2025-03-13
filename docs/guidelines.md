@@ -5,13 +5,11 @@ The AskMe bot is a Discord bot designed to facilitate community interactions wit
 It is built using Python and the discord.py library, hosted on Railway. This document serves as a reference for
 ensuring design consistency and efficient synchronization across multiple development environments.
 
-
 # Bot Architecture
 
 ## File Structure
 ```
 discord-askme-bot/
-├── config.py
 ├── main.py
 ├── Procfile
 ├── requirements.txt
@@ -20,7 +18,7 @@ discord-askme-bot/
 │   ├── catchup.py
 │   ├── chat.py
 │   ├── commands.py
-│   ├── dream.py
+│   ├── config_manager.py
 │   ├── guide.py
 │   ├── image.py
 │   ├── message_utils.py
@@ -29,26 +27,27 @@ discord-askme-bot/
 │   ├── planhour.py
 │   ├── planlife.py
 │   ├── snapshot.py
-│   └── talkto.py
+│   ├── talkto.py
+│   ├── user_chat.py
+│   └── disabled/
+│       ├── (archived command files)
 ├── docs/
-│   ├── coml_spec.txt
-│   ├── guidelines.coml
-│   └── update_strategy.md
+│   ├── update_strategy.md
 ```
-## Main Components
-- main.py: Handles bot initialization, event listening, and command registration.
-- config.py: Manages environment variables, tokens, and other settings.
-- commands/ directory: Contains individual command implementations, each as a separate module.
-- message_utils.py: Provides helper functions for processing Discord messages.
-- bot_errors.py: Centralized error handling.
 
+## Main Components
+- `main.py`: Handles bot initialization, event listening, and command registration.
+- `config_manager.py`: Manages dynamic command configurations, including channel whitelists.
+- `commands/`: Contains individual command implementations, each as a separate module.
+- `bot_errors.py`: Centralized error handling.
 
 ## Bot Initialization Flow
-1. Load configuration from config.py.
-2. Initialize discord.ext.commands.Bot.
+1. Initialize `discord.ext.commands.Bot`.
+2. Load environment variables and `config_manager.py`.
 3. Register event listeners and load command cogs.
-4. Run the bot using bot.run(TOKEN).
+4. Run the bot using `bot.run(TOKEN)`.
 
+---
 
 # Command Execution Modes
 
@@ -58,136 +57,110 @@ discord-askme-bot/
 - Role restrictions do not apply in DM mode.
 - Users must be a member of at least one Discord server that the bot is also a member of.
 - Useful for:
-  - Commands like !chat, which accept a string argument and do not depend on a channel.
-  - Commands like !clear, which allow users to manage their own DM history.
-
+  - Commands like `!chat`, which accept a string argument and do not depend on a channel.
+  - Commands like `!clear`, which allow users to manage their own DM history.
 
 ## Server Mode
 - Commands operate within a Discord server, using the existing rules and restrictions.
 - Users must meet the following requirements to use any command in Server Mode:
   - Be a member of the same Discord server as the bot.
-  - Have the "Vetted" role assigned to them in that server.
-- Commands use the current server channel by default, unless specified otherwise.
+  - Have the **"Vetted"** role assigned to them in that server.
+- Commands use the current server channel by default unless specified otherwise.
 - Standard command behaviors apply, including message deletion, DM feedback, and error handling.
 
+---
 
 # Command Structure
-
-## Commands as Cogs
-Commands are implemented as Cogs, which allows modularity and better organization.
-Each command file follows a structured format.
-
 
 ## Standard Command Guidelines
 
 ### Command Execution Mode Tagging
-- Each command must specify its execution mode as `server`, `dm`, or `both`.
-- This tagging should be included in the command file’s setup function using:
+- Each command must specify its execution mode as `"server"`, `"dm"`, or `"both"`.
+- This tagging should be included in the command file’s setup function:
   ```python
   async def setup(bot):
       await bot.add_cog(CommandClass(bot))
-
       command = bot.get_command("command_name")
       if command:
           command.command_mode = "server"  # Can be "server", "dm", or "both"
   ```
-- This ensures uniform execution behavior across different environments.
 
-- All commands should be defined inside Cogs.
-- Use @commands.command() to define commands.
+### General Command Rules
+- All commands should be defined inside **Cogs**.
+- Use `@commands.command()` to define commands.
 - Implement role restrictions where necessary (see Section 3.2).
 - Ensure proper parsing of user and channel arguments (see Section 5.2).
 - Include an error handler for each command to ensure smooth user experience.
-- All command feedback should be sent as a DM to the user.
-- A header message should be sent before command execution, including command name, channel, and timestamp.
-- If the DM is successfully sent, delete the original command message.
-- If the DM cannot be sent, display an error message in the channel, but do not send the full response there.
-- Bot-generated command responses must never be posted in the server channel to prevent clutter.
-- Errors should be sent as a DM first, falling back to an error message in the channel if DMs are disabled.
-- Role restriction failure messages should also be sent as DMs first, then fallback to the channel if needed.
-- All commands must include a usage statement in the docstring, explaining the command syntax and expected arguments.
-- The command message should always be deleted immediately before execution begins, regardless of processing time, to keep the server clean.
+- **All command feedback should be sent as a DM to the user.**
+- **Command execution must include a DM header with:**
+  - 📢 **Command Executed:** `<command>`
+  - 📅 **Date**
+  - 📝 **Processing status**
+- **If the DM is successfully sent, delete the original command message.**
+- **If the DM cannot be sent, display an error message in the channel, but do NOT send the full response there.**
+- **Bot-generated command responses must never be posted in the server channel** to prevent clutter.
+- **Final status messages** (e.g., `"✅ Done!"`) should be sent for commands with long processing times.
 
+---
 
-## OpenAI API Key Handling
-- All commands that require OpenAI API access must retrieve the API key from an environment variable.
-- The only correct way to initialize an OpenAI client is:
-```python
-import os
-import openai
+# Dynamic Command Configurations
 
-openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+## `config_manager.py`
+- `config_manager.py` is responsible for **retrieving dynamic command settings** from the `#bot-config` channel.
+- **Command-specific settings** (such as processing whitelists) are stored as JSON messages inside `#bot-config`.
+- Any command that references channels **must check `config_manager.py` dynamically** instead of hardcoding them.
+
+### Example JSON Format in `#bot-config`
+```json
+{
+  "catchup": {
+    "processing_whitelist": [
+      "general",
+      "story-time",
+      "crisis-chat"
+    ]
+  }
+}
 ```
-- Do NOT store the API key directly in config.py or in the command file.
-- If the API key is missing, the command should fail gracefully and log an error.
+- Commands must query `config_manager.py` at runtime to get the latest allowed channels.
+- **Commands should NOT assume all channels are available**—whitelists dictate usage.
 
+---
+
+# AI Response Formatting Rules
+
+### ✅ **New AI Summarization Rules (`!catchup`)**
+- AI summaries **must never** output `"IGNORE."` as a response.
+- If a summary is minimal, **return `"Fine, tbh."`** instead.
+- Long responses **must be split into chunks** to avoid exceeding Discord’s 2000-character limit.
+- The final output **must include a summary completion message** (e.g., `"✅ You're up to date!"`).
+- OpenAI responses **should be filtered for engagement**:
+  - Avoid trivial messages.
+  - Highlight meaningful discussions.
+  - Eliminate empty summaries.
+
+---
 
 # Common Development Issues & Fixes
 
-## TypeError: object Context can't be used in 'await' expression
-@ISSUE
-Occurs when mistakenly awaiting a synchronous function like require_role().
+### **Commands Must Delete Their Invocation Messages**
+@ISSUE  
+Some commands leave clutter by failing to delete the user’s command message.
 
-
-@FIX
-Remove await from the function call:
+@FIX  
+Ensure `ctx.message.delete()` runs **before** processing starts.  
 ```python
-if not BotErrors.require_role("Vetted")(ctx):  # Correct usage
-    return
-
-Instead of:
-
-if not await BotErrors.require_role("Vetted")(ctx):  # Incorrect usage
-    return
+try:
+    await ctx.message.delete()
+except discord.Forbidden:
+    pass  # Ignore if bot lacks permission
 ```
 
+---
 
-## Correctly Parsing Optional User and Channel Arguments
-@ISSUE
-Parsing an optional username and channel name from command arguments can be tricky, leading to incorrect resolutions.
+### **Final Notes**
+- The bot's role is **to facilitate structured and engaging conversations, not just provide information.**
+- **AI responses should feel natural and useful—not robotic.**
+- **Any major command refactor should be documented here.**
 
-
-@FIX
-Use the following pattern to resolve users and channels:
-```python
-for arg in args:
-    resolved_user = await self.resolve_member(ctx, arg)
-    if resolved_user:
-        user = resolved_user
-        continue
-
-    resolved_channel = await self.resolve_channel(ctx, arg)
-    if resolved_channel:
-        channel = resolved_channel
-        continue
-
-    await ctx.send(f"⚠️ Could not recognize `{arg}` as a valid user or channel.")
-    return
-```
-
-
-## Debugging chat.py - Membership Verification
-@ISSUE
-The bot incorrectly flagged valid server members as not being in the server.
-
-
-@FIX
-Ensure correct fetching of members using fetch_member and backup checks with get_member.
-
-
-## Preventing Unnecessary DM Sends in DM Mode
-@ISSUE
-Some commands attempt to send a DM even when they are already executed inside a DM.
-
-
-@FIX
-Check if ctx.channel is already a DM before attempting to send one.
-
-
-## Commands Throw Errors Instead of Blocking DM Execution
-@ISSUE
-Commands should not process arguments if they are invalid due to execution in a DM.
-
-
-@FIX
-Use @commands.check() with a static method to prevent argument parsing in an invalid context.
+🚀 **Guidelines are now up to date!**
