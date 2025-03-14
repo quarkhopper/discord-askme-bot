@@ -3,7 +3,6 @@ from discord.ext import commands
 import openai
 import os
 import datetime
-from collections import defaultdict
 from commands.bot_errors import BotErrors
 from commands.config_manager import ConfigManager  # Import the config manager
 
@@ -17,7 +16,16 @@ class Catchup(commands.Cog):
     @commands.command()
     @BotErrors.require_role("Vetted")  # Restrict to users with "Vetted" role
     async def catchup(self, ctx):
-        """Summarizes recent discussions across all whitelisted channels separately before collating the final summary."""
+        """
+        Usage: `!catchup`
+        
+        Summarizes recent discussions across all whitelisted channels.
+
+        - Fetches discussions from the last 24 hours.
+        - Summarizes only engaging conversations (ignoring trivial updates).
+        - Sends results via DM to prevent server clutter.
+        - Uses dynamically configured channel whitelists (via `config_manager.py`).
+        """
 
         if not ctx.guild:
             await ctx.send("❌ This command can only be used in a server.")
@@ -69,8 +77,8 @@ class Catchup(commands.Cog):
                 if not messages:
                     continue  # Skip empty channels
 
-                # **First Pass: Generate a concise, actionable summary**
-                response1 = self.openai_client.chat.completions.create(
+                # **Generate a concise, actionable summary**
+                response = self.openai_client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": 
@@ -82,39 +90,22 @@ class Catchup(commands.Cog):
                         {"role": "user", "content": "\n".join(messages)}
                     ]
                 )
-                raw_summary = response1.choices[0].message.content.strip()
-
-                # **Second Pass: Rewrite and refine the summary**
-                response2 = self.openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": 
-                            "Rewrite the following summary to ensure it is **concise yet informative**. "
-                            "Ensure all key points are captured, removing unnecessary details. "
-                            "If the summary is already strong, keep it nearly the same. "
-                            "If the summary is completely unimportant, return only the word 'IGNORE'."},
-                        {"role": "user", "content": raw_summary}
-                    ]
-                )
-                refined_summary = response2.choices[0].message.content.strip()
+                refined_summary = response.choices[0].message.content.strip()
 
                 # **Filter out non-engaging summaries**
                 if refined_summary.upper() == "IGNORE":
                     continue  # Skip this channel
 
-                # **NEW: Ensure summaries are stored only once**
+                # **Store summary without sending immediately**
                 summary_text = f"📢 **Summary for `#{channel.name}`:**\n{refined_summary}"
                 overall_summaries.append(summary_text)
-
-                # **Only send each summary once**
-                await ctx.author.send(summary_text)
 
             except discord.Forbidden:
                 continue  
             except Exception as e:
                 await ctx.author.send(f"❌ Error summarizing `#{channel_name}`: {e}")
 
-        # **NEW: Prevent duplicate summary formatting**
+        # **Send summaries only once at the end**
         if overall_summaries:
             final_summary = "\n\n".join(overall_summaries)
 
@@ -135,7 +126,7 @@ class Catchup(commands.Cog):
         else:
             await ctx.author.send("✅ **`!catchup` complete. No significant discussions found.**")
 
-        # **NEW: Final confirmation message**
+        # **Final confirmation message**
         await ctx.author.send("✅ **`!catchup` has finished processing. You're up to date!**")
 
 async def setup(bot):
