@@ -37,11 +37,6 @@ class Egg(commands.Cog):
                 await ctx.send("🥚 Couldn't find a previous message to egg-splain.")
                 return
 
-        try:
-            await ctx.message.delete()
-        except discord.Forbidden:
-            pass
-
         wait_message = await ctx.send("🥚 Warming up the nest...")
 
         try:
