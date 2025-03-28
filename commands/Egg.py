@@ -13,10 +13,10 @@ class Egg(commands.Cog):
 
     @commands.command()
     async def egg(self, ctx, *, message: str):
-        """Talk to the eggbot. Everything leads back to eggs.
+        """Talk to the eggbot. It lives for egg metaphors.
 
         Usage:
-        `!egg <message>` → Responds with egg metaphors and excitement.
+        `!egg <message>` → Responds with egg metaphors and yolky excitement.
 
         - **Server Mode Only**: Requires the "Vetted" role.
         """
@@ -32,14 +32,17 @@ class Egg(commands.Cog):
         except discord.Forbidden:
             pass
 
-        wait_message = await ctx.send("🥚 Hatching your response...")
+        wait_message = await ctx.send("🥚 Warming up the nest...")
 
         try:
             prompt = (
                 f"You are an AI who is absolutely obsessed with eggs. "
-                f"Every answer should use egg metaphors, make egg puns, or redirect the conversation toward eggs. "
-                f"If the user talks about eggs, you get very excited. "
-                f"Be enthusiastic, silly, and clever. Here's what the user said:\n\n{message}"
+                f"Every response must contain at least one egg-related metaphor or pun. "
+                f"Try to interpret the user’s message through the lens of eggs, yolks, shells, nests, omelets, etc. "
+                f"You get especially excited if the user talks about eggs directly. "
+                f"Be whimsical, playful, and charming. Always try to bring the conversation back to eggs. "
+                f"If all else fails, compare their message to something involving eggs.\n\n"
+                f"User message: {message}"
             )
 
             response = self.openai_client.chat.completions.create(
