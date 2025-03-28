@@ -12,7 +12,7 @@ class Egg(commands.Cog):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     @commands.command()
-    async def egg(self, ctx, *, message: str):
+    async def egg(self, ctx, *, message: str = None):
         """Talk to the eggbot. It lives for egg metaphors.
 
         Usage:
@@ -26,6 +26,16 @@ class Egg(commands.Cog):
 
         if not BotErrors.require_role("Vetted")(ctx):
             return
+
+        if message is None:
+            async for msg in ctx.channel.history(limit=2):
+                if msg.id != ctx.message.id:
+                    message = msg.content
+                    break
+
+            if not message:
+                await ctx.send("🥚 Couldn't find a previous message to egg-splain.")
+                return
 
         try:
             await ctx.message.delete()
