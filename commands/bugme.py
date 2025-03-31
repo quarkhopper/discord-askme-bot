@@ -47,7 +47,7 @@ class BugMe(commands.Cog):
             for _ in range(6):  # Limit to 6 reminders (1 hour)
                 if not self.active_reminders.get(user_id):
                     break  # Stop if the user sends "!bugoff"
-                user = self.bot.get_user(user_id)
+                user = await self.bot.fetch_user(user_id)  # Fetch user from Discord API
                 if user:
                     await user.send(f"⏰ Reminder: {reminder}")
                 else:
