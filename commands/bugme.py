@@ -37,11 +37,16 @@ class BugMe(commands.Cog):
             )
             result = response.choices[0].message.content.strip()
             return result
+        except openai.error.RateLimitError:
+            print("Rate limit hit. Retrying after a delay...")
+            await asyncio.sleep(10)  # Wait 10 seconds before retrying
+            return await self.synthesize_reminder(input_text, context)  # Retry once
         except Exception as e:
             print(f"Error with OpenAI API: {e}")
             return None
 
     @commands.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)  # Cooldown: 1 use per 10 seconds per user
     async def bugme(self, ctx, *, reminder: str = None):
         """Remind the user of the given message at specified intervals.
 
