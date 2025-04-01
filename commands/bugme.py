@@ -76,15 +76,36 @@ class BugMe(commands.Cog):
     async def synthesize_reminder(self, input_text, context=None):
         """Use OpenAI to synthesize a reminder sentence."""
         prompt = (
-            f"Create a one-sentence reminder based on the following input:\n"
+            f"You are an assistant that creates concise and actionable reminders based on user input.\n"
             f"Input: {input_text}\n"
         )
         if context:
             prompt += f"Context: {context}\n"
 
-        prompt += "Reminder:"
+        prompt += (
+            f"Examples:\n"
+            f"Input: 'remind me about the penguins'\n"
+            f"Context: 'I keep having problems with penguins breaking out of my walls and I need to stop them. I need to set some traps.'\n"
+            f"Reminder: 'Set traps to stop penguins from breaking out of your walls.'\n"
+            f"Input: 'remind me to do the dishes'\n"
+            f"Context: 'The sink is full of dirty dishes.'\n"
+            f"Reminder: 'Wash the dirty dishes in the sink.'\n"
+            f"Input: 'remind me to take a break'\n"
+            f"Reminder: 'Take a break and relax for a few minutes.'\n"
+            f"Input: {input_text}\n"
+            f"Reminder:"
+        )
 
-        return await self.call_openai(prompt)
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            result = response.choices[0].message.content.strip()
+            return result
+        except Exception as e:
+            print(f"Error with OpenAI API: {e}")
+            return None
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)  # Cooldown: 1 use per 10 seconds per user
