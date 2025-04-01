@@ -1,41 +1,42 @@
 import discord
 from discord.ext import commands
 import asyncio
+import openai
+import os
 
 class BugMe(commands.Cog):
     """Cog for reminding users of a message at specified intervals."""
 
     def __init__(self, bot):
         self.bot = bot
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
         self.active_reminders = {}
 
-    async def parse_reminder(self, input_text):
-        """Use OpenAI to parse the reminder details from freeform input."""
+    async def find_relevant_message(self, ctx, query):
+        """Search the last 10 messages in the channel for a relevant message."""
+        async for message in ctx.channel.history(limit=10):
+            if query.lower() in message.content.lower() and message.id != ctx.message.id:
+                return message.content
+        return None
+
+    async def synthesize_reminder(self, input_text, context=None):
+        """Use OpenAI to synthesize a reminder sentence."""
         prompt = (
-            f"Extract the reminder details from the following input:\n"
+            f"Create a one-sentence reminder based on the following input:\n"
             f"Input: {input_text}\n"
-            f"Output format: {{'message': '<reminder message>', 'interval': <interval in minutes>, 'duration': <duration in hours>}}\n"
-            f"Example 1:\n"
-            f"Input: 'tell me to do the dishes every 20 minutes for 3 hours'\n"
-            f"Output: {{'message': 'do the dishes', 'interval': 20, 'duration': 3}}\n"
-            f"Example 2:\n"
-            f"Input: 'remind me that I am awesome'\n"
-            f"Output: {{'message': 'I am awesome', 'interval': 30, 'duration': 2}}\n"
-            f"Input: {input_text}\n"
-            f"Output:"
         )
+        if context:
+            prompt += f"Context: {context}\n"
+
+        prompt += "Reminder:"
 
         try:
-            # Use the OpenAI client from the bot instance
-            response = await self.bot.openai_client.Completion.acreate(
-                engine="text-davinci-003",
-                prompt=prompt,
-                max_tokens=100,
-                temperature=0.7,
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}]
             )
-            result = response.choices[0].text.strip()
-            # Parse the result into a dictionary
-            return eval(result)  # Use eval cautiously; ensure OpenAI output is sanitized
+            result = response.choices[0].message.content.strip()
+            return result
         except Exception as e:
             print(f"Error with OpenAI API: {e}")
             return None
@@ -48,7 +49,7 @@ class BugMe(commands.Cog):
         `!bugme <reminder>` → Sends a DM reminder at specified intervals for a specified duration.
 
         Examples:
-        - `!bugme tell me to do the dishes every 20 minutes for 3 hours`
+        - `!bugme remind me about the thing above with penguins`
         - `!bugme remind me that I am awesome`
         """
         if isinstance(ctx.channel, discord.DMChannel):
@@ -59,15 +60,22 @@ class BugMe(commands.Cog):
             await ctx.send("⚠️ Please provide a reminder message.")
             return
 
-        # Parse the reminder using OpenAI
-        parsed_reminder = await self.parse_reminder(reminder)
-        if not parsed_reminder:
-            await ctx.send("⚠️ I couldn't understand your reminder. Please try again.")
+        # Search for a relevant message in the channel history
+        relevant_message = await self.find_relevant_message(ctx, reminder)
+
+        # Synthesize the reminder sentence
+        if relevant_message:
+            synthesized_reminder = await self.synthesize_reminder(reminder, context=relevant_message)
+        else:
+            synthesized_reminder = await self.synthesize_reminder(f"something having to do with {reminder}")
+
+        if not synthesized_reminder:
+            await ctx.send("⚠️ I couldn't generate a reminder. Please try again.")
             return
 
-        message = parsed_reminder.get("message", "Reminder")
-        interval = parsed_reminder.get("interval", 30)  # Default to 30 minutes
-        duration = parsed_reminder.get("duration", 2)  # Default to 2 hours
+        # Default interval and duration
+        interval = 30  # Default to 30 minutes
+        duration = 2  # Default to 2 hours
 
         user_id = ctx.author.id
 
@@ -75,7 +83,7 @@ class BugMe(commands.Cog):
             await ctx.send("⚠️ You already have an active reminder. Use `!bugoff` in your DMs to stop it first.")
             return
 
-        await ctx.send(f"✅ I'll remind you every {interval} minutes: \"{message}\" for up to {duration} hours. Use `!bugoff` in your DMs to stop early.")
+        await ctx.send(f"✅ I'll remind you every {interval} minutes: \"{synthesized_reminder}\" for up to {duration} hours. Use `!bugoff` in your DMs to stop early.")
 
         self.active_reminders[user_id] = True
 
@@ -86,7 +94,7 @@ class BugMe(commands.Cog):
                     break  # Stop if the user sends "!bugoff"
                 user = await self.bot.fetch_user(user_id)  # Fetch user from Discord API
                 if user:
-                    await user.send(f"⏰ Reminder: {message}")
+                    await user.send(f"⏰ Reminder: {synthesized_reminder}")
                 else:
                     await ctx.send("⚠️ I couldn't find your user to send a DM.")
                     break
@@ -119,4 +127,5 @@ class BugMe(commands.Cog):
         await ctx.send("✅ Your reminder has been stopped.")
 
 async def setup(bot):
+    """Load the cog into the bot."""
     await bot.add_cog(BugMe(bot))
