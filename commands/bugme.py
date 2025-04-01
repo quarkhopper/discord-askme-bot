@@ -66,6 +66,9 @@ class BugMe(commands.Cog):
             f"Example 3:\n"
             f"Input: 'remind me about the thing above with penguins'\n"
             f"Output: {{'message': 'the thing above with penguins', 'interval': 1800, 'duration': 7200}}\n"
+            f"Example 4:\n"
+            f"Input: 'remind me in an hour to feed the cat'\n"
+            f"Output: {{'message': 'feed the cat', 'interval': 3600, 'duration': 3600}}\n"
             f"Input: {input_text}\n"
             f"Output:"
         )
@@ -106,13 +109,13 @@ class BugMe(commands.Cog):
 
         message = parsed_reminder.get("message", "Reminder")
         interval = parsed_reminder.get("interval", 1800)  # Default to 30 minutes
-        duration = parsed_reminder.get("duration", interval)  # Default to 1 reminder
+        duration = parsed_reminder.get("duration", interval)  # Default to 1 reminder (same as interval)
 
         # Validate interval and duration
         if not isinstance(interval, int) or interval <= 0:
             interval = 1800  # Default to 30 minutes
         if not isinstance(duration, int) or duration <= 0:
-            duration = interval  # Default to 1 reminder
+            duration = interval  # Default to 1 reminder (same as interval)
 
         # Synthesize the reminder
         synthesized_reminder = await self.synthesize_reminder(message)
