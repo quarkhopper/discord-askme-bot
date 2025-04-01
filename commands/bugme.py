@@ -138,8 +138,9 @@ class BugMe(commands.Cog):
         self.active_reminders[user_id] = True
 
         try:
-            total_reminders = duration // interval  # Calculate total reminders
-            for _ in range(total_reminders):
+            total_reminders = max(1, duration // interval)  # Ensure at least one reminder is sent
+            await asyncio.sleep(interval)  # Wait for the first interval before sending the first reminder
+            for i in range(total_reminders):
                 if not self.active_reminders.get(user_id):
                     break  # Stop if the user sends "!bugoff"
                 user = await self.bot.fetch_user(user_id)  # Fetch user from Discord API
@@ -148,7 +149,8 @@ class BugMe(commands.Cog):
                 else:
                     await ctx.send("⚠️ I couldn't find your user to send a DM.")
                     break
-                await asyncio.sleep(interval)  # Wait for the specified interval
+                if i < total_reminders - 1:  # Avoid sleeping after the last reminder
+                    await asyncio.sleep(interval)  # Wait for the specified interval
         except discord.Forbidden:
             await ctx.send("⚠️ I can't send you DMs. Please check your privacy settings.")
         except Exception as e:
