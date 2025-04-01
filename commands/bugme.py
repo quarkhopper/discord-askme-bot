@@ -26,41 +26,30 @@ class BugMe(commands.Cog):
                 print(f"Error with OpenAI API: {e}")
                 return None
 
-    async def find_relevant_message(self, ctx, query):
-        """Search the last 20 messages in the channel for a relevant message."""
-        async for message in ctx.channel.history(limit=20):
-            if message.id == ctx.message.id:
-                continue  # Skip the command message itself
+    async def synthesize_reminder(self, input_text, context=None):
+        """Use OpenAI to synthesize a reminder sentence."""
+        prompt = (
+            f"You are an assistant that creates concise and actionable reminders based on user input.\n"
+            f"Input: {input_text}\n"
+        )
+        if context:
+            prompt += f"Context: {context}\n"
 
-            # Use OpenAI to evaluate the relevance of the message
-            prompt = (
-                f"You are an assistant that determines if a message is relevant to a user's query.\n"
-                f"User's query: {query}\n"
-                f"Message: {message.content}\n"
-                f"Respond with 'yes' if the message is relevant to the query, otherwise respond with 'no'.\n"
-                f"Examples:\n"
-                f"Query: 'remind me about the penguins'\n"
-                f"Message: 'I keep having problems with penguins breaking out of my walls and I need to stop them. I need to set some traps.'\n"
-                f"Response: 'yes'\n"
-                f"Query: 'remind me to do the dishes'\n"
-                f"Message: 'The sink is full of dirty dishes.'\n"
-                f"Response: 'yes'\n"
-                f"Query: 'remind me to take a break'\n"
-                f"Message: 'I have been working for hours without a break.'\n"
-                f"Response: 'yes'\n"
-                f"Query: 'remind me about the penguins'\n"
-                f"Message: 'I went to the zoo and saw some penguins.'\n"
-                f"Response: 'no'\n"
-                f"Query: {query}\n"
-                f"Message: {message.content}\n"
-                f"Response:"
-            )
+        prompt += (
+            f"Examples:\n"
+            f"Input: 'remind me about the penguins'\n"
+            f"Context: 'I keep having problems with penguins breaking out of my walls and I need to stop them. I need to set some traps.'\n"
+            f"Reminder: 'Set traps to stop penguins from breaking out of your walls.'\n"
+            f"Input: 'remind me to do the dishes'\n"
+            f"Context: 'The sink is full of dirty dishes.'\n"
+            f"Reminder: 'Wash the dirty dishes in the sink.'\n"
+            f"Input: 'remind me to take a break'\n"
+            f"Reminder: 'Take a break and relax for a few minutes.'\n"
+            f"Input: {input_text}\n"
+            f"Reminder:"
+        )
 
-            result = await self.call_openai(prompt)
-            if result and result.lower() == "yes":
-                return message.content  # Return the first relevant message
-
-        return None  # No relevant message found
+        return await self.call_openai(prompt)
 
     async def parse_reminder(self, input_text):
         """Use OpenAI to parse the reminder details from freeform input."""
@@ -89,54 +78,25 @@ class BugMe(commands.Cog):
                 print(f"Error parsing OpenAI response: {e}")
         return None
 
-    async def synthesize_reminder(self, input_text, context=None):
-        """Use OpenAI to synthesize a reminder sentence."""
-        prompt = (
-            f"You are an assistant that creates concise and actionable reminders based on user input.\n"
-            f"Input: {input_text}\n"
-        )
-        if context:
-            prompt += f"Context: {context}\n"
-
-        prompt += (
-            f"Examples:\n"
-            f"Input: 'remind me about the penguins'\n"
-            f"Context: 'I keep having problems with penguins breaking out of my walls and I need to stop them. I need to set some traps.'\n"
-            f"Reminder: 'Set traps to stop penguins from breaking out of your walls.'\n"
-            f"Input: 'remind me to do the dishes'\n"
-            f"Context: 'The sink is full of dirty dishes.'\n"
-            f"Reminder: 'Wash the dirty dishes in the sink.'\n"
-            f"Input: 'remind me to take a break'\n"
-            f"Reminder: 'Take a break and relax for a few minutes.'\n"
-            f"Input: {input_text}\n"
-            f"Reminder:"
-        )
-
-        try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            result = response.choices[0].message.content.strip()
-            return result
-        except Exception as e:
-            print(f"Error with OpenAI API: {e}")
-            return None
-
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)  # Cooldown: 1 use per 10 seconds per user
     async def bugme(self, ctx, *, reminder: str = None):
-        """Remind the user of the given message at specified intervals."""
+        """Remind the user of the given message at specified intervals.
+
+        Usage:
+        `!bugme` → Creates a reminder from the last message in the channel.
+        `!bugme <reminder>` → Creates a reminder from the user's input.
+        `!bugme <reminder> every <interval> for <duration>` → Custom interval and duration.
+        """
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send("⚠️ This command can only be used in a server channel.")
             return
 
+        # Get the last message in the channel if no reminder is provided
         if reminder is None:
-            await ctx.send("⚠️ Please provide a reminder message.")
-            return
-
-        # Search for a relevant message in the channel history
-        relevant_message = await self.find_relevant_message(ctx, reminder)
+            async for message in ctx.channel.history(limit=1):
+                reminder = message.content
+                break
 
         # Parse the reminder using OpenAI
         parsed_reminder = await self.parse_reminder(reminder)
@@ -146,20 +106,16 @@ class BugMe(commands.Cog):
 
         message = parsed_reminder.get("message", "Reminder")
         interval = parsed_reminder.get("interval", 1800)  # Default to 30 minutes
-        duration = parsed_reminder.get("duration", 7200)  # Default to 2 hours
+        duration = parsed_reminder.get("duration", interval)  # Default to 1 reminder
 
         # Validate interval and duration
         if not isinstance(interval, int) or interval <= 0:
             interval = 1800  # Default to 30 minutes
         if not isinstance(duration, int) or duration <= 0:
-            duration = 7200  # Default to 2 hours
+            duration = interval  # Default to 1 reminder
 
-        # If a relevant message is found, use it as context for the synthesized reminder
-        if relevant_message:
-            synthesized_reminder = await self.synthesize_reminder(message, context=relevant_message)
-        else:
-            synthesized_reminder = await self.synthesize_reminder(message)
-
+        # Synthesize the reminder
+        synthesized_reminder = await self.synthesize_reminder(message)
         if not synthesized_reminder:
             await ctx.send("⚠️ I couldn't generate a reminder. Please try again.")
             return
