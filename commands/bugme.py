@@ -154,15 +154,20 @@ class BugMe(commands.Cog):
                     if i < total_reminders - 1:  # Avoid sleeping after the last reminder
                         await asyncio.sleep(interval)  # Wait for the specified interval
 
+                # Cleanup after the task is done
+                self.active_reminders.pop(user_id, None)
+                self.reminder_tasks.pop(user_id, None)
+
             # Store the task in the reminder_tasks dictionary
             task = asyncio.create_task(reminder_task())
             self.reminder_tasks[user_id] = task
 
         except discord.Forbidden:
             await ctx.send("⚠️ I can't send you DMs. Please check your privacy settings.")
+            self.active_reminders.pop(user_id, None)
+            self.reminder_tasks.pop(user_id, None)
         except Exception as e:
             await ctx.send(f"⚠️ An error occurred: {e}")
-        finally:
             self.active_reminders.pop(user_id, None)
             self.reminder_tasks.pop(user_id, None)
 
