@@ -91,12 +91,11 @@ class BugMe(commands.Cog):
         `!bugme <reminder>` → Creates a reminder from the user's input.
         `!bugme <reminder> every <interval> for <duration>` → Custom interval and duration.
         """
-        if isinstance(ctx.channel, discord.DMChannel):
-            await ctx.send("⚠️ This command can only be used in a server channel.")
-            return
-
-        # Get the last message in the channel if no reminder is provided
         if reminder is None:
+            # Get the last message in the channel if no reminder is provided
+            if isinstance(ctx.channel, discord.DMChannel):
+                await ctx.send("⚠️ Please provide a reminder message when using this command in DMs.")
+                return
             async for message in ctx.channel.history(limit=1):
                 reminder = message.content
                 break
