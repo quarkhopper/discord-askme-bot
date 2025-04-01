@@ -11,6 +11,20 @@ class BugMe(commands.Cog):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
         self.active_reminders = {}
+        self.openai_semaphore = asyncio.Semaphore(5)  # Limit to 5 concurrent OpenAI API calls
+
+    async def call_openai(self, prompt):
+        """Call OpenAI API with rate limiting."""
+        async with self.openai_semaphore:
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"Error with OpenAI API: {e}")
+                return None
 
     async def find_relevant_message(self, ctx, query):
         """Search the last 20 messages in the channel for a relevant message."""
@@ -26,18 +40,9 @@ class BugMe(commands.Cog):
                 f"Respond with 'yes' if the message is relevant, otherwise respond with 'no'."
             )
 
-            try:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                result = response.choices[0].message.content.strip().lower()
-
-                if result == "yes":
-                    return message.content  # Return the first relevant message
-            except Exception as e:
-                print(f"Error with OpenAI API while evaluating relevance: {e}")
-                return None
+            result = await self.call_openai(prompt)
+            if result and result.lower() == "yes":
+                return message.content  # Return the first relevant message
 
         return None  # No relevant message found
 
@@ -60,16 +65,13 @@ class BugMe(commands.Cog):
             f"Output:"
         )
 
-        try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            result = response.choices[0].message.content.strip()
-            return eval(result)  # Use eval cautiously; ensure OpenAI output is sanitized
-        except Exception as e:
-            print(f"Error with OpenAI API: {e}")
-            return None
+        result = await self.call_openai(prompt)
+        if result:
+            try:
+                return eval(result)  # Use eval cautiously; ensure OpenAI output is sanitized
+            except Exception as e:
+                print(f"Error parsing OpenAI response: {e}")
+        return None
 
     async def synthesize_reminder(self, input_text, context=None):
         """Use OpenAI to synthesize a reminder sentence."""
@@ -82,16 +84,7 @@ class BugMe(commands.Cog):
 
         prompt += "Reminder:"
 
-        try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            result = response.choices[0].message.content.strip()
-            return result
-        except Exception as e:
-            print(f"Error with OpenAI API: {e}")
-            return None
+        return await self.call_openai(prompt)
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)  # Cooldown: 1 use per 10 seconds per user
