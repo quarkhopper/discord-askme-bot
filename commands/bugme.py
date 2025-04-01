@@ -13,11 +13,33 @@ class BugMe(commands.Cog):
         self.active_reminders = {}
 
     async def find_relevant_message(self, ctx, query):
-        """Search the last 100 messages in the channel for a relevant message."""
-        async for message in ctx.channel.history(limit=100):
-            if query.lower() in message.content.lower() and message.id != ctx.message.id:
-                return message.content  # Return the first sufficiently matching message
-        return None
+        """Search the last 20 messages in the channel for a relevant message."""
+        async for message in ctx.channel.history(limit=20):
+            if message.id == ctx.message.id:
+                continue  # Skip the command message itself
+
+            # Use OpenAI to evaluate the relevance of the message
+            prompt = (
+                f"Determine if the following message is relevant to the user's query.\n"
+                f"User's query: {query}\n"
+                f"Message: {message.content}\n"
+                f"Respond with 'yes' if the message is relevant, otherwise respond with 'no'."
+            )
+
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                result = response.choices[0].message.content.strip().lower()
+
+                if result == "yes":
+                    return message.content  # Return the first relevant message
+            except Exception as e:
+                print(f"Error with OpenAI API while evaluating relevance: {e}")
+                return None
+
+        return None  # No relevant message found
 
     async def parse_reminder(self, input_text):
         """Use OpenAI to parse the reminder details from freeform input."""
