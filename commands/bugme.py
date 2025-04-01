@@ -10,7 +10,8 @@ class BugMe(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Initialize OpenAI client
-        self.active_reminders = {}
+        self.active_reminders = {}  # Tracks active reminders by user ID
+        self.reminder_tasks = {}  # Tracks asyncio tasks for reminders
         self.openai_semaphore = asyncio.Semaphore(5)  # Limit to 5 concurrent OpenAI API calls
 
     async def call_openai(self, prompt):
@@ -138,24 +139,32 @@ class BugMe(commands.Cog):
 
         try:
             total_reminders = max(1, duration // interval)  # Ensure at least one reminder is sent
-            await asyncio.sleep(interval)  # Wait for the first interval before sending the first reminder
-            for i in range(total_reminders):
-                if not self.active_reminders.get(user_id):
-                    break  # Stop if the user sends "!bugoff"
-                user = await self.bot.fetch_user(user_id)  # Fetch user from Discord API
-                if user:
-                    await user.send(f"⏰ Reminder: {synthesized_reminder}")
-                else:
-                    await ctx.send("⚠️ I couldn't find your user to send a DM.")
-                    break
-                if i < total_reminders - 1:  # Avoid sleeping after the last reminder
-                    await asyncio.sleep(interval)  # Wait for the specified interval
+
+            async def reminder_task():
+                await asyncio.sleep(interval)  # Wait for the first interval before sending the first reminder
+                for i in range(total_reminders):
+                    if not self.active_reminders.get(user_id):
+                        break  # Stop if the user sends "!bugoff"
+                    user = await self.bot.fetch_user(user_id)  # Fetch user from Discord API
+                    if user:
+                        await user.send(f"⏰ Reminder: {synthesized_reminder}")
+                    else:
+                        await ctx.send("⚠️ I couldn't find your user to send a DM.")
+                        break
+                    if i < total_reminders - 1:  # Avoid sleeping after the last reminder
+                        await asyncio.sleep(interval)  # Wait for the specified interval
+
+            # Store the task in the reminder_tasks dictionary
+            task = asyncio.create_task(reminder_task())
+            self.reminder_tasks[user_id] = task
+
         except discord.Forbidden:
             await ctx.send("⚠️ I can't send you DMs. Please check your privacy settings.")
         except Exception as e:
             await ctx.send(f"⚠️ An error occurred: {e}")
         finally:
             self.active_reminders.pop(user_id, None)
+            self.reminder_tasks.pop(user_id, None)
 
     @commands.command()
     async def bugoff(self, ctx):
@@ -169,6 +178,11 @@ class BugMe(commands.Cog):
         if user_id not in self.active_reminders:
             await ctx.send("⚠️ You don't have any active reminders.")
             return
+
+        # Cancel the running task
+        task = self.reminder_tasks.pop(user_id, None)
+        if task:
+            task.cancel()
 
         self.active_reminders.pop(user_id, None)
         await ctx.send("✅ Your reminder has been stopped.")
