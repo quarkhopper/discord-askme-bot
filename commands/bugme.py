@@ -119,6 +119,12 @@ class BugMe(commands.Cog):
         interval = parsed_reminder.get("interval", 1800)  # Default to 30 minutes
         duration = parsed_reminder.get("duration", 7200)  # Default to 2 hours
 
+        # Validate interval and duration
+        if not isinstance(interval, int) or interval <= 0:
+            interval = 1800  # Default to 30 minutes
+        if not isinstance(duration, int) or duration <= 0:
+            duration = 7200  # Default to 2 hours
+
         # If a relevant message is found, use it as context for the synthesized reminder
         if relevant_message:
             synthesized_reminder = await self.synthesize_reminder(message, context=relevant_message)
