@@ -13,10 +13,10 @@ class BugMe(commands.Cog):
         self.active_reminders = {}
 
     async def find_relevant_message(self, ctx, query):
-        """Search the last 10 messages in the channel for a relevant message."""
-        async for message in ctx.channel.history(limit=10):
+        """Search the last 100 messages in the channel for a relevant message."""
+        async for message in ctx.channel.history(limit=100):
             if query.lower() in message.content.lower() and message.id != ctx.message.id:
-                return message.content
+                return message.content  # Return the first sufficiently matching message
         return None
 
     async def synthesize_reminder(self, input_text, context=None):
