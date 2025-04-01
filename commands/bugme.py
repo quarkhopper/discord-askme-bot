@@ -34,10 +34,26 @@ class BugMe(commands.Cog):
 
             # Use OpenAI to evaluate the relevance of the message
             prompt = (
-                f"Determine if the following message is relevant to the user's query.\n"
+                f"You are an assistant that determines if a message is relevant to a user's query.\n"
                 f"User's query: {query}\n"
                 f"Message: {message.content}\n"
-                f"Respond with 'yes' if the message is relevant, otherwise respond with 'no'."
+                f"Respond with 'yes' if the message is relevant to the query, otherwise respond with 'no'.\n"
+                f"Examples:\n"
+                f"Query: 'remind me about the penguins'\n"
+                f"Message: 'I keep having problems with penguins breaking out of my walls and I need to stop them. I need to set some traps.'\n"
+                f"Response: 'yes'\n"
+                f"Query: 'remind me to do the dishes'\n"
+                f"Message: 'The sink is full of dirty dishes.'\n"
+                f"Response: 'yes'\n"
+                f"Query: 'remind me to take a break'\n"
+                f"Message: 'I have been working for hours without a break.'\n"
+                f"Response: 'yes'\n"
+                f"Query: 'remind me about the penguins'\n"
+                f"Message: 'I went to the zoo and saw some penguins.'\n"
+                f"Response: 'no'\n"
+                f"Query: {query}\n"
+                f"Message: {message.content}\n"
+                f"Response:"
             )
 
             result = await self.call_openai(prompt)
@@ -110,15 +126,7 @@ class BugMe(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)  # Cooldown: 1 use per 10 seconds per user
     async def bugme(self, ctx, *, reminder: str = None):
-        """Remind the user of the given message at specified intervals.
-
-        Usage:
-        `!bugme <reminder>` → Sends a DM reminder at specified intervals for a specified duration.
-
-        Examples:
-        - `!bugme tell me to do the dishes every 30 seconds for 10 minutes`
-        - `!bugme remind me that I am awesome every 5 minutes for 1 hour`
-        """
+        """Remind the user of the given message at specified intervals."""
         if isinstance(ctx.channel, discord.DMChannel):
             await ctx.send("⚠️ This command can only be used in a server channel.")
             return
@@ -162,7 +170,11 @@ class BugMe(commands.Cog):
             await ctx.send("⚠️ You already have an active reminder. Use `!bugoff` in your DMs to stop it first.")
             return
 
-        await ctx.send(f"✅ I'll remind you every {interval // 60} minutes: \"{synthesized_reminder}\" for up to {duration // 60} minutes. Use `!bugoff` in your DMs to stop early.")
+        # Display interval in seconds if less than 60 seconds
+        interval_display = f"{interval // 60} minutes" if interval >= 60 else f"{interval} seconds"
+        await ctx.send(
+            f"✅ I'll remind you every {interval_display}: \"{synthesized_reminder}\" for up to {duration // 60} minutes. Use `!bugoff` in your DMs to stop early."
+        )
 
         self.active_reminders[user_id] = True
 
@@ -187,11 +199,7 @@ class BugMe(commands.Cog):
 
     @commands.command()
     async def bugoff(self, ctx):
-        """Stop the active reminder.
-
-        Usage:
-        `!bugoff` → Stops the current reminder. Must be used in DMs with the bot.
-        """
+        """Stop the active reminder."""
         if not isinstance(ctx.channel, discord.DMChannel):
             await ctx.send("⚠️ This command can only be used in DMs with the bot.")
             return
